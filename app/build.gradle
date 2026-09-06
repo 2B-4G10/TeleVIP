@@ -2,6 +2,18 @@ plugins {
     alias(libs.plugins.android.application)
 }
 
+// Release signing credentials, kept out of git. Android refuses to install an unsigned APK,
+// so without this the release variant produces app-release-unsigned.apk and the module cannot
+// be installed at all - which is exactly what "App not installed" means here.
+//
+// The build still works on a machine that has no keystore.properties (a fresh clone, CI): the
+// release variant simply goes back to being unsigned, and the warning below says so.
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+
 // Property assignment uses 'name = value' throughout. The bare 'name value' Groovy space
 // syntax is deprecated in Gradle 9 and removed in Gradle 10.
 android {
@@ -21,6 +33,21 @@ android {
         }
     }
 
+    signingConfigs {
+        release {
+            if (keystoreProperties.containsKey("storeFile")) {
+                storeFile = rootProject.file(keystoreProperties["storeFile"])
+                storePassword = keystoreProperties["storePassword"]
+                keyAlias = keystoreProperties["keyAlias"]
+                keyPassword = keystoreProperties["keyPassword"]
+
+                // v1 (JAR signing) is only required below API 24 and minSdk here is 27, so AGP
+                // signs with v2 alone. Verified with 'apksigner verify --verbose': v2 true.
+                enableV2Signing = true
+            }
+        }
+    }
+
     buildTypes {
         release {
             // Left off deliberately. R8 would rename the hook entry classes that the framework
@@ -28,6 +55,14 @@ android {
             // resolvers in com.my.televip.Clients address the target app by string anyway.
             minifyEnabled = false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+
+            if (keystoreProperties.containsKey("storeFile")) {
+                signingConfig = signingConfigs.release
+            } else {
+                logger.warn("TeleVip: keystore.properties not found, the release APK will be "
+                        + "unsigned and Android will refuse to install it. See keystore.properties "
+                        + "in the repository root for how to generate one.")
+            }
         }
     }
 
