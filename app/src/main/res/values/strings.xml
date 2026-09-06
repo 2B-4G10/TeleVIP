@@ -1,5 +1,7 @@
 <resources>
-    <string name="app_name">TeleVip</string>
+    <!-- Product name: a proper noun, deliberately never localised. Without translatable="false"
+         lint raises MissingTranslation for values-ar and fails the build. -->
+    <string name="app_name" translatable="false">TeleVip</string>
     <!-- The modern Xposed API takes the module description from android:description
          instead of the legacy xposeddescription meta-data. -->
     <string name="app_description">Adds advanced privacy, media and customization features to Telegram clients.</string>

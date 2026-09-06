@@ -1,28 +1,32 @@
+// Built as an application rather than a library on purpose: only an APK gives us a dex file,
+// and :app embeds that dex as a byte[] (see the generateDexHolder task in app/build.gradle).
 plugins {
-    id 'com.android.application'
+    alias(libs.plugins.android.application)
 }
 
 android {
-    namespace 'com.televip.SettingsAdapter'
-    compileSdk 36
+    namespace = 'com.televip.SettingsAdapter'
+    compileSdk = 36
 
     defaultConfig {
-        applicationId "com.televip.SettingsAdapter"
-        minSdk 27
-        targetSdk 36
-        versionCode 1
-        versionName "1.0"
+        applicationId = "com.televip.SettingsAdapter"
+        minSdk = 27
+        targetSdk = 36
+        versionCode = 1
+        versionName = "1.0"
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 }
 
 dependencies {
+    // compileOnly on purpose: these classes are provided by the *target* Telegram client at
+    // runtime, not by this APK. Only the dex is extracted and injected, never the dependencies.
     compileOnly libs.appcompat
     compileOnly libs.material
 }

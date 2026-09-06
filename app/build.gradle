@@ -1,31 +1,39 @@
-apply plugin: 'com.android.application'
+plugins {
+    alias(libs.plugins.android.application)
+}
 
+// Property assignment uses 'name = value' throughout. The bare 'name value' Groovy space
+// syntax is deprecated in Gradle 9 and removed in Gradle 10.
 android {
-    namespace 'com.my.televip'
-    compileSdk 36
+    namespace = 'com.my.televip'
+    compileSdk = 36
 
     defaultConfig {
-        applicationId "com.my.televip"
-        minSdk 27
-        targetSdk 36
-        versionCode 340
-        versionName "3.7.0"
+        applicationId = "com.my.televip"
+        minSdk = 27
+        targetSdk = 36
+        versionCode = 340
+        versionName = "3.7.0"
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
-            useSupportLibrary true
+            useSupportLibrary = true
         }
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            // Left off deliberately. R8 would rename the hook entry classes that the framework
+            // looks up by name from META-INF/xposed/java_init.list, and the reflective client
+            // resolvers in com.my.televip.Clients address the target app by string anyway.
+            minifyEnabled = false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     // src/main/resources is packaged as java resources, which is where the modern Xposed
@@ -35,16 +43,22 @@ android {
 }
 
 dependencies {
-    implementation(libs.jcal)
+    implementation libs.jcal
 
     // Modern libxposed API (102) - the only entry point, com.my.televip.xposed.TeleVipModule,
     // registered through META-INF/xposed/java_init.list. compileOnly: the framework that loads
     // us provides the implementation. The legacy de.robv (module API 93) path was removed.
     compileOnly libs.libxposed
 
-    implementation(libs.gson)
-    implementation(libs.appcompat)
-    implementation(libs.material)
+    implementation libs.gson
+    implementation libs.appcompat
+    implementation libs.material
+
+    // The test source sets existed with no test dependencies declared, so 'gradle build'
+    // failed on 'package org.junit does not exist' while 'assembleRelease' passed.
+    testImplementation libs.junit
+    androidTestImplementation libs.androidx.test.junit
+    androidTestImplementation libs.androidx.test.espresso.core
 }
 // ---------------------------------------------------------------------------
 // DexHolder code generation

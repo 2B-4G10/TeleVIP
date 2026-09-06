@@ -1,3 +1,27 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+dependencyResolutionManagement {
+    // Repositories live here rather than in an allprojects{} block in the root build script.
+    // FAIL_ON_PROJECT_REPOS makes that a hard rule, so a module cannot quietly reintroduce a
+    // repository of its own and change what the build resolves.
+    repositoriesMode = RepositoriesMode.FAIL_ON_PROJECT_REPOS
+    repositories {
+        google()
+        mavenCentral()
+        // ir.huri:JalaliCalendar is only published here.
+        maven { url = uri('https://jitpack.io') }
+    }
+}
+
 rootProject.name = "TeleVip"
 include ':app'
 include ':settingsadapter'
