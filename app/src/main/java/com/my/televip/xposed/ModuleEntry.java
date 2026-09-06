@@ -17,11 +17,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * The one bootstrap both entry points funnel into.
+ * The bootstrap the module entry point funnels into.
  *
- * <p>{@link com.my.televip.MainHook} (legacy {@code assets/xposed_init}) and {@link TeleVipModule}
- * (modern {@code META-INF/xposed/java_init.list}) call {@link #attach}. A framework only activates
- * one of them, but the guard below keeps the module correct even if a host ever activated both.</p>
+ * <p>{@link TeleVipModule} ({@code META-INF/xposed/java_init.list}) calls {@link #attach} once per
+ * target package. The {@link #ATTACHED} guard is kept because {@code onPackageReady} can legitimately
+ * fire more than once for the same package — for example when a client spawns an extra process.</p>
  */
 public final class ModuleEntry {
 

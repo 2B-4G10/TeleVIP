@@ -37,71 +37,149 @@ android {
 dependencies {
     implementation(libs.jcal)
 
-    // Legacy Xposed API (module API 93) - entry point com.my.televip.MainHook.
-    compileOnly libs.api
-    // Modern libxposed API (100/102) - entry point com.my.televip.xposed.TeleVipModule.
-    // Both are compileOnly: whichever framework loads us provides its own implementation.
+    // Modern libxposed API (102) - the only entry point, com.my.televip.xposed.TeleVipModule,
+    // registered through META-INF/xposed/java_init.list. compileOnly: the framework that loads
+    // us provides the implementation. The legacy de.robv (module API 93) path was removed.
     compileOnly libs.libxposed
 
     implementation(libs.gson)
     implementation(libs.appcompat)
     implementation(libs.material)
 }
-tasks.register("copyLargestDexAsJava") {
+// ---------------------------------------------------------------------------
+// DexHolder code generation
+//
+// :settingsadapter is built as a separate APK whose classes are loaded at runtime
+// through InMemoryDexClassLoader (see com.my.televip.dex.DexInjector). Its dex is
+// embedded here as a byte[] constant so nothing has to be read from disk inside the
+// hooked process - under Zygisk Next the module class loader is sandboxed and the
+// module APK path is not reliably reachable from the target process.
+//
+// Why this is not the original one-liner doLast block:
+//
+//  * Output goes to build/generated, never into src/. The old task wrote
+//    DexHolder.java into src/main/java, which meant every build mutated a source
+//    directory and the file had to be gitignored to keep the tree clean.
+//  * Inputs and outputs are declared, so the task is incremental and cacheable
+//    instead of re-serialising the whole dex on every single build.
+//  * The dex is read straight out of the APK with ZipFile - no temp extract dir.
+//  * The hex payload is emitted in chunks. A Java string *constant* is capped at
+//    64 KB of UTF-8 in the class file, so one big literal would hard-fail the
+//    build as soon as the adapter dex grew past ~32 KB.
+//  * The APK is located under build/outputs/apk, which is AGP's stable published
+//    location. The old path (build/intermediates/apk) has not existed since AGP 4
+//    and made a clean build fail outright.
+// ---------------------------------------------------------------------------
 
-    dependsOn(":settingsadapter:assembleDebug")
+abstract class GenerateDexHolder extends DefaultTask {
 
-    doLast {
-        def apkFile = fileTree("$rootDir/settingsadapter/build/intermediates/apk/debug")
-                .matching { include "*.apk" }
-                .singleFile
+    /** Directory AGP publishes the :settingsadapter APK into. */
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    abstract ConfigurableFileCollection getApkDirectory()
 
-        def tempDir = new File(buildDir, "tmp/dexExtract")
-        tempDir.mkdirs()
+    @OutputDirectory
+    abstract DirectoryProperty getOutputDirectory()
 
-        copy {
-            from zipTree(apkFile)
-            into tempDir
-            include "classes*.dex"
+    /** Characters per generated literal. Keeps every string constant well under the 64 KB cap. */
+    private static final int CHUNK = 16000
+
+    private static final String PACKAGE = "com.my.televip.dex"
+
+    @TaskAction
+    void generate() {
+        def apks = apkDirectory.asFileTree.matching { include "**/*.apk" }.files.sort { it.name }
+        if (apks.isEmpty()) {
+            throw new GradleException("No APK produced by :settingsadapter. Searched: "
+                    + apkDirectory.files.join(", ")
+                    + "\nRun ':settingsadapter:assembleDebug' and check its output location.")
+        }
+        def apk = apks.first()
+
+        byte[] dexBytes = null
+        String dexName = null
+        new java.util.zip.ZipFile(apk).withCloseable { zip ->
+            for (def entry : Collections.list(zip.entries())) {
+                if (!(entry.name ==~ /classes\d*\.dex/)) continue
+                if (dexBytes != null && entry.size <= dexBytes.length) continue
+                dexBytes = zip.getInputStream(entry).withCloseable { it.bytes }
+                dexName = entry.name
+            }
+        }
+        if (dexBytes == null) {
+            throw new GradleException("No classes*.dex entry inside ${apk}")
         }
 
-        def dexFiles = fileTree(tempDir).matching { include "classes*.dex" }.files
-
-        if (dexFiles.isEmpty()) {
-            throw new GradleException("No dex files found!")
+        def hex = new StringBuilder(dexBytes.length * 2)
+        for (byte b : dexBytes) {
+            hex.append(Character.forDigit((b >> 4) & 0xF, 16).toUpperCase())
+            hex.append(Character.forDigit(b & 0xF, 16).toUpperCase())
         }
 
-        def largestDex = dexFiles.max { it.length() }
+        def literals = new StringBuilder()
+        for (int i = 0; i < hex.length(); i += CHUNK) {
+            literals.append("\n            \"")
+                    .append(hex, i, Math.min(i + CHUNK, hex.length()))
+                    .append("\",")
+        }
 
-        // قراءة dex كـ bytes
-        byte[] dexBytes = largestDex.bytes
+        def out = outputDirectory.get().asFile
+        def pkgDir = new File(out, PACKAGE.replace('.' as char, File.separatorChar))
+        pkgDir.mkdirs()
 
-        def hex = dexBytes.collect { String.format("%02X", it) }.join("")
+        new File(pkgDir, "DexHolder.java").text = """\
+// Generated by the :app:generateDexHolder Gradle task. Do not edit.
+// Source: ${dexName} from ${apk.name} (${dexBytes.length} bytes).
+package ${PACKAGE};
 
-        def outputDir = file("$projectDir/src/main/java/com/my/televip/dex")
-        outputDir.mkdirs()
+public final class DexHolder {
 
-        def javaFile = new File(outputDir, "DexHolder.java")
+    public static final byte[] DEX_BYTES = decode();
 
-        javaFile.text = """
-package com.my.televip.dex;
+    private DexHolder() {
+    }
 
-public class DexHolder {
-    public static final byte[] DEX_BYTES = hexToBytes("${hex}");
-
-    private static byte[] hexToBytes(String hex) {
-        int len = hex.length();
-        byte[] data = new byte[len / 2];
-        for (int i = 0; i < len; i += 2) {
-            data[i / 2] = (byte) ((Character.digit(hex.charAt(i), 16) << 4)
-                                + Character.digit(hex.charAt(i+1), 16));
+    private static byte[] decode() {
+        final String[] parts = {${literals}
+        };
+        int length = 0;
+        for (String part : parts) {
+            length += part.length();
+        }
+        final byte[] data = new byte[length / 2];
+        int index = 0;
+        for (String part : parts) {
+            for (int i = 0; i < part.length(); i += 2) {
+                data[index++] = (byte) ((Character.digit(part.charAt(i), 16) << 4)
+                        + Character.digit(part.charAt(i + 1), 16));
+            }
         }
         return data;
     }
 }
 """
-        println "Generated DexHolder with largest dex: ${largestDex.name}"
+
+        logger.lifecycle("DexHolder: embedded ${dexName} (${dexBytes.length} bytes) from ${apk.name}")
     }
 }
 
-preBuild.dependsOn("copyLargestDexAsJava")
+def generateDexHolder = tasks.register("generateDexHolder", GenerateDexHolder) {
+    dependsOn(":settingsadapter:assembleDebug")
+    apkDirectory.from(project(":settingsadapter").layout.buildDirectory.dir("outputs/apk/debug"))
+}
+
+// Generated sources have to go through the variant API, not android.sourceSets.
+//
+// android.sourceSets.main.java.srcDir(provider) does NOT work here: AGP reads the source
+// set eagerly while configuring the variant, so the generated directory is only picked up
+// if it already happens to exist on disk. That makes incremental builds look fine and any
+// clean build fail with "cannot find symbol: DexHolder".
+//
+// addGeneratedSourceDirectory registers the task as the producer of a source directory, so
+// AGP both wires the javac task dependency and owns the output location.
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        variant.sources.java.addGeneratedSourceDirectory(
+                generateDexHolder, GenerateDexHolder::getOutputDirectory)
+    }
+}
