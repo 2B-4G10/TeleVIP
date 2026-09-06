@@ -12,23 +12,18 @@
         tools:ignore="UnusedAttribute">
 
         <!--
-          Legacy Xposed descriptor (module API 93). Frameworks that do not understand
-          META-INF/xposed/module.prop load com.my.televip.MainHook through assets/xposed_init.
-          Modern frameworks (LSPosed 1.10+, Vector 2.2) ignore this block and use
-          META-INF/xposed/java_init.list -> com.my.televip.xposed.TeleVipModule instead.
+          This is a libxposed API 102 module only. Everything the framework needs to load it
+          lives in java resources, not here:
+
+            META-INF/xposed/module.prop      minApiVersion / targetApiVersion = 102
+            META-INF/xposed/java_init.list   com.my.televip.xposed.TeleVipModule
+            META-INF/xposed/scope.list       default scope
+
+          The legacy API 93 descriptor (xposedmodule / xposedminversion / xposedscope
+          meta-data plus assets/xposed_init) was deliberately removed. Leaving it in place
+          would make pre-1.10 LSPosed and EdXposed advertise the module and then fail at
+          load time, because there is no longer a de.robv entry class for them to find.
         -->
-        <meta-data
-            android:name="xposedmodule"
-            android:value="true" />
-        <meta-data
-            android:name="xposeddescription"
-            android:value="@string/app_description" />
-        <meta-data
-            android:name="xposedminversion"
-            android:value="93" />
-        <meta-data
-            android:name="xposedscope"
-            android:resource="@array/xposedscope" />
 
     </application>
 
