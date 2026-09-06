@@ -24,6 +24,14 @@ android {
     }
 }
 
+// Must match :app - this module's dex is embedded into :app, so both are compiled by the
+// same JDK regardless of what runs Gradle. See the note in app/build.gradle.
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
 dependencies {
     // compileOnly on purpose: these classes are provided by the *target* Telegram client at
     // runtime, not by this APK. Only the dex is extracted and injected, never the dependencies.
