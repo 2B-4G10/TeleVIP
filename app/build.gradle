@@ -39,7 +39,16 @@ android {
     // src/main/resources is packaged as java resources, which is where the modern Xposed
     // entry descriptors (META-INF/xposed/*) and the language packs (lang/*) live. They are
     // reached through the module class loader, so no APK path lookup is needed at runtime.
+}
 
+// Pin the compiler itself, not just the bytecode level. Without this the build compiles with
+// whatever JDK happens to run Gradle - Android Studio uses its bundled JDK 25, CI uses Temurin 17 -
+// and the two can disagree. The foojay resolver in settings.gradle downloads this toolchain when
+// no matching JDK is installed, so a clean checkout builds without any local JDK setup.
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
 }
 
 dependencies {
