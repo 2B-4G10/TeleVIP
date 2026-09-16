@@ -33,11 +33,16 @@ public class ClientChecker {
      * R8 name, and those names change on every client release. When the installed build differs
      * from the one below, the module used to fail silently with a stream of "Not found ..." lines;
      * {@link #checkClientVersion} now says so once, up front.</p>
+     *
+     * <p>The number in brackets is {@code PackageInfo.versionCode}. Telegram encodes its build
+     * code and distribution channel in it as {@code code * 10 + channel}, where 1 and 2 are the
+     * store bundles and 9 is the direct/web APK — so 70382 is build 7038 (12.10.1) from the
+     * Play Store.</p>
      */
     private static final Map<ClientType, String> VERIFIED_BUILD = new EnumMap<>(ClientType.class);
 
     static {
-        VERIFIED_BUILD.put(ClientType.Telegram, "12.8.3 (69222)");
+        VERIFIED_BUILD.put(ClientType.Telegram, "12.10.1 (70382)");
         VERIFIED_BUILD.put(ClientType.TelegramBeta, "12.9.0 (69579)");
         VERIFIED_BUILD.put(ClientType.TelegramWeb, "12.8.3 (69229)");
         VERIFIED_BUILD.put(ClientType.TelegramPlus, "12.8.1.0 (22350)");
