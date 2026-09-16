@@ -1,6 +1,6 @@
 # Modern Xposed module descriptor (libxposed API).
-# Read by LSPosed 1.10+ and Vector 2.2. Frameworks that do not understand this file
-# fall back to assets/xposed_init + the xposedminversion meta-data (module API 93).
+# Read by LSPosed 1.10+ and Vector 2.2. This is the module's only descriptor: the legacy
+# API 93 path was removed, so a framework that cannot read this file will not load TeleVip.
 minApiVersion=102
 targetApiVersion=102
 staticScope=false

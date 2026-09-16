@@ -4,22 +4,21 @@
 
 ### Modern Xposed API (libxposed 102)
 
-TeleVip now ships **two entry points in one APK** and runs on whichever contract the installed
-framework activates:
+TeleVip is now a **libxposed API 102 module**, loaded through a single modern entry point:
 
 | Entry | Descriptor | Class |
 |---|---|---|
 | Modern (API 102) | `META-INF/xposed/java_init.list` + `module.prop` | `com.my.televip.xposed.TeleVipModule` |
-| Legacy (API 93) | `assets/xposed_init` | `com.my.televip.MainHook` |
 
-Both funnel into `com.my.televip.xposed.ModuleEntry#attach`, which is guarded so activating both
-can never double-hook.
+It funnels into `com.my.televip.xposed.ModuleEntry#attach`. The legacy API 93 entry
+(`assets/xposed_init` → `MainHook`) was dropped before release: leaving it in place would make
+LSPosed 1.9.x and EdXposed advertise the module and then fail at load time, because there is no
+longer a `de.robv` entry class for them to find.
 
 New compatibility layer under `com.my.televip.xposed`:
 
 - **`XBridge`** — the only seam to the framework: hooking, logging, module APK path, deoptimize,
   framework name/version. Everything else in the module goes through it.
-- **`LegacyBackend`** — adapts to `de.robv.android.xposed.XposedBridge` / `XC_MethodHook`.
 - **`ModernBackend`** — adapts to `XposedInterface.hook(Executable).intercept(Hooker)`. API 102
   replaced the before/after pair with an OkHttp-style interceptor chain, so the adapter rebuilds
   classic semantics on top of `Chain`: a result set in `beforeMethod` short-circuits the chain
@@ -49,19 +48,24 @@ the same best-match argument resolution (exact match → boxing → primitive wi
 - Language packs moved from `assets/lang/` to `src/main/resources/lang/` and are read straight off
   the module class loader — no APK path needed at all. The old ZIP scan is kept as a fallback and
   still auto-discovers packs the index does not list.
-- `Logger` routes through `XBridge`, so logging works on both backends and degrades to
-  `android.util.Log` if no backend is installed yet.
+- `Logger` routes through `XBridge` and degrades to `android.util.Log` if no backend is
+  installed yet.
 - Startup now logs the active backend, framework name and version.
 
 ### Nekogram
 
 - **Nekogram X added** (`nekox.messenger`): new `Clients/NekogramX.java` resolver, `ClientType`
-  entry and `xposedscope` item. Like its Momogram fork, NekoX ships unobfuscated Telegram symbols,
-  so the mapping tables are empty and names resolve to upstream Telegram names.
+  entry and `META-INF/xposed/scope.list` item. Like its Momogram fork, NekoX ships unobfuscated
+  Telegram symbols, so the mapping tables are empty and names resolve to upstream Telegram names.
 - **Version drift is now visible.** `ClientChecker#checkClientVersion` records the build each
   resolver table was generated against and logs one clear warning at startup when the installed
   client differs — loud for the obfuscated clients (Nekogram, Cherrygram), where a mismatch means
   essentially every hook silently fails.
+- **Official Telegram re-verified against 12.10.1** (build 70382). The symbols the module resolves
+  by name — `TLRPC.Message` fields, `TL_messages_readHistory` / `TL_channels_readHistory`,
+  `TL_updateDeleteMessages`, `MessagesController` / `ConnectionsManager` / `UserConfig` accessors
+  and `PeerStoriesView$StoryItemHolder#allowScreenshots` — are unchanged from the previously
+  verified build, so no hook needed updating.
 
 > The Nekogram/Cherrygram R8 mapping tables themselves still have to be regenerated from the target
 > APK whenever those clients update; that cannot be done from source.
