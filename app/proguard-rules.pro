@@ -21,9 +21,6 @@
 #-renamesourcefileattribute SourceFile
 
 # --- Xposed -------------------------------------------------------------------
-# Legacy entry point, referenced by name from assets/xposed_init.
--keep class com.my.televip.MainHook { *; }
-
 # Modern libxposed entry point, referenced by name from META-INF/xposed/java_init.list.
 -dontwarn io.github.libxposed.annotation.**
 -adaptresourcefilecontents META-INF/xposed/java_init.list

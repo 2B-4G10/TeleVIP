@@ -12,7 +12,7 @@ import io.github.libxposed.api.XposedInterface;
 import io.github.libxposed.api.XposedInterfaceWrapper;
 
 /**
- * Backend for the modern libxposed API (100 / 102), i.e. current LSPosed and Vector 2.2.
+ * Backend for the modern libxposed API 102, i.e. current LSPosed and Vector 2.2.
  *
  * <p>API 102 replaced the before/after callback pair with an OkHttp-style interceptor chain. The
  * adapter below rebuilds the classic semantics on top of it:</p>

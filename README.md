@@ -80,14 +80,14 @@ A powerful Xposed module that adds advanced customization features to Telegram c
 
 # 🧩 Supported frameworks
 
-TeleVip ships **two entry points** and uses whichever one the installed framework activates, so a
-single APK covers both the old and the new Xposed module contracts.
+TeleVip is a **libxposed API 102 module only**. It declares `minApiVersion=102`, so frameworks that
+implement the modern contract load it and older ones do not advertise it at all.
 
 | Framework | Module API | Entry point |
 |---|---|---|
 | Vector 2.2+ (JingMatrix) | 102 (modern libxposed) | `META-INF/xposed/java_init.list` → `com.my.televip.xposed.TeleVipModule` |
-| LSPosed 1.10+ | 100/102 (modern libxposed) | same as above |
-| LSPosed (older), EdXposed, LSPatch | 93 (legacy) | `assets/xposed_init` → `com.my.televip.MainHook` |
+| LSPosed 1.10+ | 102 (modern libxposed) | same as above |
+| LSPosed 1.9.x, EdXposed, LSPatch | 93 (legacy) | **not supported** — the legacy `assets/xposed_init` entry was removed |
 
 Zygisk providers: **Zygisk Next / NeoZygisk**, Magisk built-in Zygisk and KernelSU are all supported —
 the module talks to the Xposed framework only through `com.my.televip.xposed.XBridge` and never
