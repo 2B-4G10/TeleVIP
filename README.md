@@ -96,15 +96,38 @@ path, which is what used to break language loading on app-scoped modules under Z
 
 
 
+# 📥 Download
+
+GitHub builds the APK for you, so you do not need an Android SDK to get one.
+
+1. Open the [**Actions** tab](../../actions/workflows/build-apk.yml).
+2. Click the newest **Build APK** run — or press **Run workflow** to build the current code now.
+3. Scroll to **Artifacts**, download the `TeleVip-…` file, and unzip it.
+4. Copy `TeleVip-…-debug.apk` to your phone and open it to install.
+5. In **LSPosed** or **Vector**: **Modules** → enable **TeleVip** → tick your Telegram clients →
+   **force stop** Telegram and reopen it.
+
+Each run repeats these steps on its own summary page, with the exact file names for that build.
+
+> Install the **debug** APK. The release APK is only signed when the repository has signing
+> secrets set (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`) — Android
+> refuses to install an unsigned APK, which is what "App not installed" means.
+
+
+
 # 🛠️ Building
 
 ```bash
 ./gradlew :app:assembleRelease
 ```
 
-Requirements: JDK 17, Android SDK 36. The two Xposed APIs are `compileOnly` dependencies
-(`de.robv.android.xposed:api:82` and `io.github.libxposed:api:102.0.0`), so neither is packaged —
-the framework provides its own implementation at runtime.
+Requirements: JDK 17, Android SDK 36. The libxposed API (`io.github.libxposed:api:102.0.0`) is a
+`compileOnly` dependency, so it is not packaged — the framework provides its own implementation at
+runtime.
+
+To get an installable APK locally, either build the debug variant (`./gradlew :app:assembleDebug`,
+signed with the debug key) or create a `keystore.properties` in the repository root so the release
+variant is signed.
 
 The `Nekogram` and `Cherrygram` resolvers hold R8 name mappings that are **specific to one client
 build**. When a mismatch is detected TeleVip now logs a single explicit warning at startup instead
