@@ -17,6 +17,12 @@ jobs:
     name: Build APK
     runs-on: ubuntu-latest
 
+    # A green run takes about three minutes. Without a timeout a hung Gradle step sits on the
+    # runner for GitHub's six-hour default before anyone finds out, which is exactly what
+    # happened once: testDebugUnitTest wedged for quarter of an hour having taken 68 seconds on
+    # the commit before it. Thirty minutes is well clear of a cold cache and still fails fast.
+    timeout-minutes: 30
+
     # Secrets cannot be read from a step-level 'if', so the one the steps branch on is mapped
     # to an env var here and tested as env.KEYSTORE_BASE64 below.
     env:
@@ -65,7 +71,10 @@ jobs:
 
       # The drift-tolerance rules in XReflect decide how far a hook may bend when Telegram moves
       # something, so a regression there is worth failing the build before an APK is produced.
+      # Tighter than the job budget so a wedged test run is named as such rather than showing up
+      # as the whole job timing out somewhere.
       - name: Run the unit tests
+        timeout-minutes: 12
         run: ./gradlew :app:testDebugUnitTest --stacktrace
 
       # Gradle says nothing on success, so a run that executed no tests at all looks exactly like
