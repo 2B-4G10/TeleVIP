@@ -68,6 +68,44 @@ jobs:
       - name: Run the unit tests
         run: ./gradlew :app:testDebugUnitTest --stacktrace
 
+      # Gradle says nothing on success, so a run that executed no tests at all looks exactly like
+      # a run that passed. Put the counts on the summary page where they can be read at a glance.
+      - name: Summarise the unit tests
+        if: always()
+        run: |
+          python3 - >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import glob, xml.etree.ElementTree as ET
+
+          reports = sorted(glob.glob('app/build/test-results/testDebugUnitTest/*.xml'))
+          if not reports:
+              print("\n### Unit tests\n\nNo results were produced — the tests did not run.")
+              raise SystemExit(0)
+
+          total = failed = skipped = 0
+          suites = []
+          for report in reports:
+              root = ET.parse(report).getroot()
+              total += int(root.get('tests', 0))
+              failed += int(root.get('failures', 0)) + int(root.get('errors', 0))
+              skipped += int(root.get('skipped', 0))
+              suites.append(root.get('name'))
+
+          print("\n### Unit tests\n")
+          print(f"{total} run, {failed} failed, {skipped} skipped.\n")
+          for suite in suites:
+              print(f"- `{suite}`")
+          PY
+
+      # The report is the only way to see which case broke once a test does fail.
+      - name: Upload the test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-report
+          path: app/build/reports/tests/testDebugUnitTest
+          if-no-files-found: ignore
+          retention-days: 14
+
       # Debug is always built because it is signed with the auto-generated debug key, so every
       # run has one APK that can actually be installed. An unsigned release APK cannot be -
       # Android rejects it with "App not installed". Both variants go in one invocation so the
@@ -80,7 +118,10 @@ jobs:
         run: |
           mkdir -p artifacts
           version=$(grep -m1 'versionName' app/build.gradle | cut -d'"' -f2)
-          short_sha=$(git rev-parse --short HEAD)
+          # On a pull_request run the checkout is a synthetic merge commit that exists nowhere in
+          # the repository, so name the build after the commit someone can actually look up.
+          sha="${{ github.event.pull_request.head.sha || github.sha }}"
+          short_sha="${sha:0:7}"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "short_sha=$short_sha" >> "$GITHUB_OUTPUT"
 
