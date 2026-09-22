@@ -6,6 +6,7 @@ import android.content.Context;
 
 import com.my.televip.Configs.ConfigManager;
 import com.my.televip.application.AndroidUtilities;
+import com.my.televip.diagnostics.HookHealth;
 import com.my.televip.dex.DexInjector;
 import com.my.televip.language.Translator;
 import com.my.televip.logging.Logger;
@@ -28,6 +29,10 @@ public class TeleVip {
             Bridge.init(settingsController);
             ConfigManager.loadAndRead(context);
             SettingsManager.init(settingsController);
+
+            // Everything the enabled features hook is installed by now, so one line can say
+            // whether this client release still looks the way the hooks expect.
+            HookHealth.logReport();
 
         } catch (Throwable e){
             Logger.e(e);

@@ -63,6 +63,11 @@ jobs:
             echo "keyPassword=$KEY_PASSWORD"
           } > keystore.properties
 
+      # The drift-tolerance rules in XReflect decide how far a hook may bend when Telegram moves
+      # something, so a regression there is worth failing the build before an APK is produced.
+      - name: Run the unit tests
+        run: ./gradlew :app:testDebugUnitTest --stacktrace
+
       # Debug is always built because it is signed with the auto-generated debug key, so every
       # run has one APK that can actually be installed. An unsigned release APK cannot be -
       # Android rejects it with "App not installed". Both variants go in one invocation so the

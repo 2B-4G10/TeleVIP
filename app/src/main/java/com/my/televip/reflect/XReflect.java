@@ -4,8 +4,13 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -77,10 +82,14 @@ public final class XReflect {
         Class<?>[] types = new Class<?>[specs == null ? 0 : specs.length];
         for (int i = 0; i < types.length; i++) {
             Object spec = specs[i];
-            if (spec instanceof Class) {
+            if (spec == null || spec instanceof Class) {
+                // A null spec means the call site resolved this parameter type against the client
+                // and came back empty, so the class has been renamed or removed. Keeping the
+                // position null marks it as a wildcard for findMethodCompatibleIfExists instead of
+                // failing the whole hook here, which is all that used to happen.
                 types[i] = (Class<?>) spec;
             } else if (spec instanceof String) {
-                types[i] = findClass((String) spec, classLoader);
+                types[i] = findClassIfExists((String) spec, classLoader);
             } else {
                 throw new IllegalArgumentException(
                         "Parameter type must be a Class or a class name, got: " + spec);
@@ -91,16 +100,11 @@ public final class XReflect {
 
     // ---------------------------------------------------------------- methods
 
-    public static Method findMethodExact(Class<?> clazz, String name, Class<?>... parameterTypes) {
-        Method method = findMethodExactIfExists(clazz, name, parameterTypes);
-        if (method == null) {
-            throw new NoSuchMethodError(descriptor(clazz, name, parameterTypes));
-        }
-        return method;
-    }
-
     public static Method findMethodExactIfExists(Class<?> clazz, String name, Class<?>... parameterTypes) {
         if (clazz == null || name == null) return null;
+        // A null entry means the call site asked for a parameter type that no longer resolves.
+        // getDeclaredMethod cannot match that, so skip straight to the tolerant lookup.
+        if (hasUnresolvedType(parameterTypes)) return null;
         for (Class<?> current = clazz; current != null; current = current.getSuperclass()) {
             try {
                 Method method = current.getDeclaredMethod(name, parameterTypes);
@@ -111,6 +115,90 @@ public final class XReflect {
             }
         }
         return null;
+    }
+
+    /**
+     * Finds a method whose signature has drifted since the call site was written.
+     *
+     * <p>Telegram is not obfuscated, so hooks address it by plain name — but a method keeping its
+     * name while gaining a parameter, or having a parameter type renamed, is routine across client
+     * releases and defeats the exact lookup above. This is the fallback for that case, and it is
+     * only ever consulted once the exact match has already failed, so it cannot change the
+     * behaviour of a hook that still resolves normally.</p>
+     *
+     * <p>It refuses to guess. A candidate is accepted only when it is the single possibility:</p>
+     * <ul>
+     *   <li>No parameters requested — the call site was written against a no-argument method, so
+     *       its callback cannot be reading {@code param.args} and any signature is safe to take.
+     *       Accepted only when exactly one method carries the name.</li>
+     *   <li>Parameters requested — the arity must still match, so the argument positions the
+     *       callback indexes stay aligned. Types are compared where the call site could still
+     *       resolve them; a {@code null} entry is treated as a wildcard. Accepted only when
+     *       exactly one candidate fits.</li>
+     * </ul>
+     *
+     * @return the drifted method, or {@code null} when there is no unambiguous answer
+     */
+    public static Method findMethodCompatibleIfExists(Class<?> clazz, String name,
+                                                      Class<?>... parameterTypes) {
+        if (clazz == null || name == null) return null;
+
+        List<Method> named = findMethodsNamed(clazz, name);
+        if (named.isEmpty()) return null;
+
+        int requested = parameterTypes == null ? 0 : parameterTypes.length;
+        if (requested == 0) {
+            return named.size() == 1 ? accessible(named.get(0)) : null;
+        }
+
+        Method match = null;
+        for (Method candidate : named) {
+            Class<?>[] actual = candidate.getParameterTypes();
+            if (actual.length != requested) continue;
+            boolean fits = true;
+            for (int i = 0; i < requested; i++) {
+                Class<?> wanted = parameterTypes[i];
+                if (wanted != null && !wanted.equals(actual[i])) {
+                    fits = false;
+                    break;
+                }
+            }
+            if (!fits) continue;
+            if (match != null) return null; // more than one fits, so any pick would be a guess
+            match = candidate;
+        }
+        return match == null ? null : accessible(match);
+    }
+
+    /**
+     * Every method with this name in the hierarchy, most-derived first, one entry per signature so
+     * an override does not read as a second candidate.
+     */
+    private static List<Method> findMethodsNamed(Class<?> clazz, String name) {
+        List<Method> found = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (Class<?> current = clazz; current != null; current = current.getSuperclass()) {
+            for (Method method : current.getDeclaredMethods()) {
+                if (!method.getName().equals(name)) continue;
+                if (seen.add(Arrays.toString(method.getParameterTypes()))) {
+                    found.add(method);
+                }
+            }
+        }
+        return found;
+    }
+
+    private static boolean hasUnresolvedType(Class<?>[] parameterTypes) {
+        if (parameterTypes == null) return false;
+        for (Class<?> parameterType : parameterTypes) {
+            if (parameterType == null) return true;
+        }
+        return false;
+    }
+
+    private static Method accessible(Method method) {
+        method.setAccessible(true);
+        return method;
     }
 
     /**

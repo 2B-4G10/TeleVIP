@@ -96,6 +96,45 @@ path, which is what used to break language loading on app-scoped modules under Z
 
 
 
+# 🔄 Surviving Telegram updates
+
+Official Telegram is not obfuscated, so TeleVip hooks it by plain name — 74 classes and 172
+distinct method names. Every one of those is something a client release can move, and when one
+moves the matching feature simply stops working.
+
+What the module does about it:
+
+- **Signature drift is tolerated.** A method that keeps its name but gains a parameter, or has a
+  parameter type renamed, used to take its hook down. It is now re-matched by name, and the hook
+  is attached anyway. This is only attempted once the exact lookup has already failed, so a hook
+  that still resolves normally behaves exactly as before.
+- **It refuses to guess.** A drifted candidate is accepted only when it is the single possibility.
+  Where the call site passes parameter types the arity must still match, so the argument positions
+  the callback reads stay aligned; where it passes none, the callback was written against a
+  no-argument method and cannot be reading arguments at all. Anything ambiguous is left alone.
+- **A class that no longer resolves becomes a wildcard** rather than failing the whole hook, so a
+  renamed inner class no longer takes down a hook whose method is still there.
+- **Breakage is visible.** One line at startup reports how the hooks landed:
+
+  ```
+  hook health: 68 resolved, 2 drifted, 1 missing
+    drifted (signature changed, hooked anyway): SharedConfig#setNewAppVersionAvailable
+    missing methods (feature inactive): ChatActivity#processSentMessage
+  ```
+
+  A bug report can then name the symbol that moved instead of "stories stopped working".
+
+What it still cannot do, and no amount of matching will:
+
+- **A renamed method or class cannot be found.** If Telegram renames `allowScreenshots`, nothing
+  identifies the replacement; that feature is inactive until the name is updated here.
+- **A reordered or ambiguous signature is left alone** on purpose — attaching to the wrong overload
+  in a privacy feature is worse than that feature being off, because it would look like it works.
+- **The obfuscated forks** (Nekogram, Cherrygram) still need their R8 mapping tables regenerated
+  from the target APK on every client release. None of the above helps there.
+
+
+
 # 📥 Download
 
 GitHub builds the APK for you, so you do not need an Android SDK to get one.
