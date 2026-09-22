@@ -73,7 +73,10 @@ jobs:
       - name: Summarise the unit tests
         if: always()
         run: |
-          python3 - >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          # tee, not a plain redirect: the summary is a file, so counts written only there are
+          # invisible in the job log, which is where anyone debugging the run actually looks.
+          set -o pipefail
+          python3 - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
           import glob, xml.etree.ElementTree as ET
 
           reports = sorted(glob.glob('app/build/test-results/testDebugUnitTest/*.xml'))
