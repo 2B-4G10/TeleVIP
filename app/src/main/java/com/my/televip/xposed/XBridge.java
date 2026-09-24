@@ -3,6 +3,7 @@ package com.my.televip.xposed;
 import android.util.Log;
 
 import com.my.televip.base.AbstractMethodHook;
+import com.my.televip.diagnostics.HookHealth;
 import com.my.televip.reflect.XReflect;
 
 import java.lang.reflect.Constructor;
@@ -184,7 +185,23 @@ public final class XBridge {
         AbstractMethodHook callback = takeCallback(parameterTypesAndCallback);
         Class<?>[] parameterTypes = XReflect.resolveParameterTypes(
                 clazz.getClassLoader(), dropLast(parameterTypesAndCallback));
-        Method method = XReflect.findMethodExact(clazz, methodName, parameterTypes);
+
+        Method method = XReflect.findMethodExactIfExists(clazz, methodName, parameterTypes);
+        if (method != null) {
+            HookHealth.resolved();
+        } else {
+            // The exact signature is gone. Telegram renames and reshapes freely between releases,
+            // so before giving the feature up entirely, see whether the method is still there
+            // under the same name with a signature the call site can safely be attached to.
+            method = XReflect.findMethodCompatibleIfExists(clazz, methodName, parameterTypes);
+            String symbol = clazz.getSimpleName() + "#" + methodName;
+            if (method == null) {
+                HookHealth.missingMember(symbol);
+                throw new NoSuchMethodError(symbol + " not found in " + clazz.getName());
+            }
+            HookHealth.drifted(symbol);
+            log("[TeleVip] signature drift, hooking anyway: " + symbol + " is now " + method);
+        }
         hook(method, callback);
     }
 

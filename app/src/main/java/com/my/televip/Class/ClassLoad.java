@@ -1,6 +1,7 @@
 package com.my.televip.Class;
 
 import com.my.televip.ClientChecker;
+import com.my.televip.diagnostics.HookHealth;
 import com.my.televip.logging.Logger;
 import com.my.televip.obfuscate.AutomationResolver;
 import com.my.televip.utils.Utils;
@@ -30,6 +31,7 @@ public class ClassLoad {
                 cache.put(resolved, cls);
             } else {
                 if ((ClientChecker.check(ClientChecker.ClientType.Nagram) || ClientChecker.check(ClientChecker.ClientType.Momogram)) && name.equals(ClassNames.DRAWABLE)) return null;
+                HookHealth.missingClass(resolved);
                 Logger.w("Not found " + name + ", " + resolved + " " + Utils.issue);
             }
             return cls;
@@ -55,6 +57,7 @@ public class ClassLoad {
             if (cls != null) {
                 cache.put(resolved, cls);
             } else {
+                HookHealth.missingClass(resolved);
                 Logger.w("Not found Class " + name + ", " + resolved + " " + Utils.issue);
             }
             return cls;
