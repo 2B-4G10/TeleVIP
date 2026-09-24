@@ -1,5 +1,35 @@
 # Changelog
 
+## Unreleased — surviving Telegram updates
+
+Hooks address Telegram by plain name across 74 classes and 172 method names, so a client release
+that moves one of them silently takes a feature out. Two changes make that less likely and, when
+it does happen, obvious.
+
+- **Signature drift no longer kills a hook.** `XBridge#findAndHookMethod` falls back to
+  `XReflect#findMethodCompatibleIfExists` when the exact signature is gone: the method is
+  re-matched by name and hooked anyway. The fallback only runs where the hook was already dead, so
+  nothing that resolves today changes behaviour.
+
+  It accepts a candidate only when it is unambiguous. With parameter types given, the arity must
+  match so the argument positions a callback indexes stay aligned; with none given, the call site
+  was written against a no-argument method and provably cannot be reading arguments. Anything else
+  is refused — attaching a privacy feature to the wrong overload would be worse than leaving it
+  off, because it would look like it works. Constructors stay strict for the same reason.
+
+- **A parameter type that no longer resolves is a wildcard.** `ClassLoad` returns `null` for a
+  renamed class, and that `null` used to fail the whole hook in `resolveParameterTypes`. It now
+  marks that one position as unknown, so a renamed inner class no longer takes down a hook whose
+  method is still present.
+
+- **`HookHealth` reports how the hooks landed**, as one line at startup: how many resolved, how
+  many were recovered after drifting, and which symbols were not found at all. Counts stay exact
+  even when the printed list is capped. Previously this was one warning per failure, scattered
+  through a log nobody reads until something is visibly broken.
+
+A rename is still fatal to the feature that depended on it, and the obfuscated forks still need
+their mapping tables regenerated per client build. See "Surviving Telegram updates" in the README.
+
 ## 3.7.0 — Xposed API 102, Vector 2.2, Zygisk Next, Nekogram X
 
 ### Modern Xposed API (libxposed 102)
