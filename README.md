@@ -133,7 +133,20 @@ What it still cannot do, and no amount of matching will:
 - **The obfuscated forks** (Nekogram, Cherrygram) still need their R8 mapping tables regenerated
   from the target APK on every client release. None of the above helps there.
 
+## Obfuscated clients (Nekogram, Cherrygram)
 
+These clients rename classes and methods with R8, and the names change between releases - even
+*which* parts get renamed changes (Nekogram 12.10.3 stopped renaming `org.telegram.messenger` and
+`tgnet`, which 12.8.1 still renamed). A table of names made for one release therefore points at
+*different* classes in the next one, so TeleVip never applies a table to a build it was not made
+for. Instead it reads the running client's own APK when it starts and finds each class and method
+by what it is rather than what it is called: its real name if the build kept it, otherwise a
+fingerprint - the strings it loads, what it extends, what it calls, its signature. The result is
+cached per client build, so this costs about a second once after each client update.
+
+Anything that cannot be pinned down to exactly one class or method is left off and reported, never
+guessed. The `TeleVip` logcat line starting with `obfuscation:` says how the running build was
+resolved.
 
 # 📥 Download
 

@@ -35,7 +35,24 @@ public class TextSettingsCell {
     }
 
     public TextView getTextView(){
-        return (TextView) XReflect.getObjectField(textSettingsCell,AutomationResolver.resolve("TextSettingsCell","textView", AutomationResolver.ResolverType.Field));
+        try {
+            return (TextView) XReflect.getObjectField(textSettingsCell,AutomationResolver.resolve("TextSettingsCell","textView", AutomationResolver.ResolverType.Field));
+        } catch (Throwable unresolved) {
+            // The field name did not resolve for this build; the title is the first TextView.
+            return firstTextView((View) textSettingsCell);
+        }
     }
 
+
+    private static TextView firstTextView(View view) {
+        if (view instanceof TextView) return (TextView) view;
+        if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                TextView found = firstTextView(group.getChildAt(i));
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
 }

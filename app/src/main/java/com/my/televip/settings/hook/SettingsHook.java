@@ -36,16 +36,7 @@ public class SettingsHook {
 
             GhostDrawable ghostDrawable = new GhostDrawable();
 
-            HMethod.hookMethod(ClassLoad.getClass(ClassNames.SETTINGS_ACTIVITY_SETTING_CELL), AutomationResolver.resolve("SettingsActivity$SettingCell", "set", AutomationResolver.ResolverType.Method), AutomationResolver.merge(AutomationResolver.resolveObject("set", new Class[]{int.class, int.class, int.class, CharSequence.class, CharSequence.class, CharSequence.class}), new AbstractMethodHook() {
-                @Override
-                protected void afterMethod(MethodHookParam param) {
-                    int id = (int) param.args[2];
-                    if (id == 8353847) {
-                        ImageView iconView = (ImageView) XReflect.getObjectField(param.thisObject, AutomationResolver.resolve("SettingsActivity$SettingCell", "iconView", AutomationResolver.ResolverType.Field));
-                        iconView.setImageDrawable(ghostDrawable);
-                    }
-                }
-            }));
+            hookGhostIcon(SettingsActivity$SettingCell$FactoryClass, ghostDrawable);
 
             HMethod.hookMethod(SettingsActivityClass, AutomationResolver.resolve("SettingsActivity", "fillItems", AutomationResolver.ResolverType.Method),
                     AutomationResolver.merge(AutomationResolver.resolveObject("fillItems", new Class[]{java.util.ArrayList.class, ClassLoad.getClass(ClassNames.UNIVERSAL_ADAPTER)}), new AbstractMethodHook() {
@@ -57,12 +48,9 @@ public class SettingsHook {
                                 int color1 = 0xFFF46F6F;
                                 int color2 = 0xFFDF5555;
 
-                                Object uItem = XReflect.callStaticMethod(SettingsActivity$SettingCell$FactoryClass, AutomationResolver.resolve("SettingsActivity$SettingCell$Factory", "of", AutomationResolver.ResolverType.Method), 8353847,
-                                        color1,
-                                        color2,
-                                        8353847,
-                                        Translator.get(Keys.GhostMode),
-                                        Translator.get(Keys.ByMustafa));
+                                Object uItem = newSettingItem(SettingsActivity$SettingCell$FactoryClass, 8353847,
+                                        color1, color2, 8353847,
+                                        Translator.get(Keys.GhostMode), Translator.get(Keys.ByMustafa));
                                 for (int i = 0; i < arrayList.size(); i++) {
                                     UItem item = new UItem(arrayList.get(i));
 
@@ -93,6 +81,72 @@ public class SettingsHook {
                         }
                     }));
         } catch (Throwable t){
+            Logger.e(t);
+        }
+    }
+
+    /**
+     * A settings row from SettingCell.Factory.of. The seven-argument overload is tried first: the
+     * shorter ones only forward to it with a null value, and a build that never calls them has
+     * them inlined away (Nekogram 12.10.3 does), while the seven-argument one is always there.
+     */
+    private static Object newSettingItem(Class<?> factory, int id, int colorTop, int colorBottom, int icon,
+                                         CharSequence title, CharSequence subtitle) {
+        String of = AutomationResolver.resolve("SettingsActivity$SettingCell$Factory", "of", AutomationResolver.ResolverType.Method);
+        String of7 = AutomationResolver.resolve("SettingsActivity$SettingCell$Factory", "ofIIIICCC", AutomationResolver.ResolverType.Method);
+        // An unmapped key comes back unchanged; only a mapped one is a real method name.
+        String sevenArgs = "ofIIIICCC".equals(of7) ? of : of7;
+        try {
+            return XReflect.callStaticMethod(factory, sevenArgs, id, colorTop, colorBottom, icon, title, subtitle, null);
+        } catch (Throwable sevenFailed) {
+            return XReflect.callStaticMethod(factory, of, id, colorTop, colorBottom, icon, title, subtitle);
+        }
+    }
+
+    /**
+     * Puts the ghost icon on TeleVip's row. Hooks SettingCell.set where the build still has it;
+     * where R8 inlined set into the factory's bindView (Nekogram 12.10.3), hooks bindView, which
+     * cannot be inlined because it overrides UItemFactory's.
+     */
+    private void hookGhostIcon(Class<?> factory, final GhostDrawable ghostDrawable) {
+        final Class<?> cellClass = ClassLoad.getClass(ClassNames.SETTINGS_ACTIVITY_SETTING_CELL);
+        final String iconField = AutomationResolver.resolve("SettingsActivity$SettingCell", "iconView", AutomationResolver.ResolverType.Field);
+        String setName = AutomationResolver.resolve("SettingsActivity$SettingCell", "set", AutomationResolver.ResolverType.Method);
+        Class<?>[] setParams = AutomationResolver.resolveObject("set", new Class[]{int.class, int.class, int.class, CharSequence.class, CharSequence.class, CharSequence.class});
+
+        if (cellClass != null && XReflect.findMethodExactIfExists(cellClass, setName, setParams) != null) {
+            HMethod.hookMethod(cellClass, setName, AutomationResolver.merge(setParams, new AbstractMethodHook() {
+                @Override
+                protected void afterMethod(MethodHookParam param) {
+                    if ((int) param.args[2] == 8353847) setGhostIcon(param.thisObject, iconField, ghostDrawable);
+                }
+            }));
+            return;
+        }
+
+        if (factory == null) return;
+        String bindName = AutomationResolver.resolve("SettingsActivity$SettingCell$Factory", "bindView", AutomationResolver.ResolverType.Method);
+        for (Method method : factory.getDeclaredMethods()) {
+            Class<?>[] params = method.getParameterTypes();
+            if (!method.getName().equals(bindName) || params.length < 2 || !View.class.isAssignableFrom(params[0])) continue;
+            HMethod.hookMethod(method, new AbstractMethodHook() {
+                @Override
+                protected void afterMethod(MethodHookParam param) {
+                    if (param.args[1] != null && new UItem(param.args[1]).getID() == 8353847) {
+                        setGhostIcon(param.args[0], iconField, ghostDrawable);
+                    }
+                }
+            });
+            return;
+        }
+        Logger.w("settings: neither SettingCell.set nor Factory.bindView found, TeleVip's row keeps the default icon");
+    }
+
+    private static void setGhostIcon(Object cell, String iconField, GhostDrawable ghostDrawable) {
+        try {
+            ImageView iconView = (ImageView) XReflect.getObjectField(cell, iconField);
+            if (iconView != null) iconView.setImageDrawable(ghostDrawable);
+        } catch (Throwable t) {
             Logger.e(t);
         }
     }

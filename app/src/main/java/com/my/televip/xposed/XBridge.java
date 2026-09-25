@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.my.televip.base.AbstractMethodHook;
 import com.my.televip.diagnostics.HookHealth;
+import com.my.televip.obfuscate.AutomationResolver;
 import com.my.televip.reflect.XReflect;
 
 import java.lang.reflect.Constructor;
@@ -189,6 +190,12 @@ public final class XBridge {
         Method method = XReflect.findMethodExactIfExists(clazz, methodName, parameterTypes);
         if (method != null) {
             HookHealth.resolved();
+        } else if (AutomationResolver.isObfuscatedName(methodName)) {
+            // A name from an obfuscation mapping means nothing on its own, so a same-named method
+            // with another signature is not the same method. Exact or nothing.
+            String symbol = clazz.getSimpleName() + "#" + methodName;
+            HookHealth.missingMember(symbol);
+            throw new NoSuchMethodError(symbol + " (obfuscated name) has no exact match in " + clazz.getName());
         } else {
             // The exact signature is gone. Telegram renames and reshapes freely between releases,
             // so before giving the feature up entirely, see whether the method is still there

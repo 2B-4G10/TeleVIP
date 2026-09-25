@@ -10,6 +10,7 @@ import com.my.televip.TeleVip;
 import com.my.televip.base.AbstractMethodHook;
 import com.my.televip.hooks.HMethod;
 import com.my.televip.logging.Logger;
+import com.my.televip.obfuscate.RuntimeMappings;
 import com.my.televip.utils.Utils;
 
 import java.util.Collections;
@@ -53,6 +54,10 @@ public final class ModuleEntry {
             Utils.pkgName = packageName;
             Utils.classLoader = classLoader;
             Utils.modulePath = XBridge.modulePath();
+
+            // An obfuscated client's names are worked out from its own APK. Start now, off the main
+            // thread, so it is normally done before the first activity needs it.
+            RuntimeMappings.prefetch(packageName, classLoader);
 
             Logger.l("attached to " + packageName
                     + " | backend=" + XBridge.backendId()

@@ -10,6 +10,7 @@ import com.my.televip.diagnostics.HookHealth;
 import com.my.televip.dex.DexInjector;
 import com.my.televip.language.Translator;
 import com.my.televip.logging.Logger;
+import com.my.televip.obfuscate.RuntimeMappings;
 import com.my.televip.settings.SettingsManager;
 import com.my.televip.settings.controller.SettingsController;
 import com.my.televip.utils.Utils;
@@ -19,6 +20,8 @@ public class TeleVip {
     
     public static void startHook(Context context) {
         try {
+            // Before the table loads: decide whether it describes this build at all.
+            RuntimeMappings.activate(context, Utils.pkgName);
             resolverRegistry.loadParameter();
             Translator.init();
             AndroidUtilities.init(context);

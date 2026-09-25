@@ -69,6 +69,19 @@ public class ClientChecker {
         return client == null ? null : VERIFIED_BUILD.get(client);
     }
 
+    /** The versionCode in brackets in {@link #VERIFIED_BUILD}, or null if there is none. */
+    public static Long verifiedVersionCode(ClientType client) {
+        String build = verifiedBuild(client);
+        if (build == null) return null;
+        int open = build.lastIndexOf('('), close = build.lastIndexOf(')');
+        if (open < 0 || close <= open) return null;
+        try {
+            return Long.parseLong(build.substring(open + 1, close).trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
     /**
      * Logs the running client build, and warns when it is not the one the resolver tables were
      * generated from. Obfuscated clients get a louder warning because every hook depends on the
@@ -94,9 +107,10 @@ public class ClientChecker {
                 return;
             }
             if (client.isTgnetObfuscated()) {
-                Logger.w("client " + client.name() + " is " + running + " but the obfuscation map was"
-                        + " built for " + verified + ". Renamed symbols will not resolve and most"
-                        + " features will be inactive. " + Utils.issue);
+                // Not a failure any more: RuntimeMappings resolves this build from its own APK
+                // instead of applying a table made for another one. See its line in the log.
+                Logger.l("client " + client.name() + " is " + running + ", the static table is for "
+                        + verified + " - names are being resolved from the running APK instead");
             } else {
                 Logger.w("client " + client.name() + " is " + running + ", verified build is "
                         + verified + ". Some hooks may not apply.");
