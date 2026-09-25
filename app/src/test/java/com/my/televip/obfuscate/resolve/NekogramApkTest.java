@@ -89,6 +89,11 @@ public class NekogramApkTest {
         assertEquals("l", mapping.resolveMethod("ChatMessageCell", "getMessageObject"));
         assertEquals("k", mapping.resolveMethod("AlertDialog$Builder", "setTitle"));
         assertEquals("f", mapping.resolveMethod("AlertDialog$Builder", "setMessage"));
+        // openUrlInSystemBrowser shares openUrl(Context, String)'s signature; only openUrl skips
+        // straight past the ten-parameter overload.
+        assertEquals("r", mapping.resolveMethod("Browser", "openUrlCS"));
+        // isCurrentThemeDay is the same call negated; only the un-negated one is isCurrentThemeDark.
+        assertEquals("a1", mapping.resolveMethod("Theme", "isCurrentThemeDark"));
     }
 
     /** What cannot be pinned down must stay unresolved - these are the ones that would be guesses. */

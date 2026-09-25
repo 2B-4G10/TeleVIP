@@ -139,6 +139,16 @@ public interface Body {
         };
     }
 
+    /** Makes exactly this many method calls. */
+    static Body callCount(final int count) {
+        return (r, m) -> Refs.of(r, m).calls.size() == count;
+    }
+
+    /** Contains this Dalvik opcode, e.g. 0xdf (xor-int/lit8) for a boolean negation. */
+    static Body usesOpcode(final int opcode) {
+        return (r, m) -> Refs.of(r, m).opcodes.contains(opcode);
+    }
+
     /** Calls no method at all - a plain getter or setter. */
     static Body callsNothing() {
         return (r, m) -> Refs.of(r, m).calls.isEmpty();
@@ -258,6 +268,7 @@ public interface Body {
         final Set<String> types = new HashSet<>();
         final List<String> newInstances = new ArrayList<>();
         final Set<Integer> switchKeys = new HashSet<>();
+        final Set<Integer> opcodes = new HashSet<>();
 
         static Refs of(Resolver r, DexClass.Method method) {
             Refs cached = r.refs.get(method);
@@ -296,6 +307,11 @@ public interface Body {
                 @Override
                 public void switchKey(int key) {
                     refs.switchKeys.add(key);
+                }
+
+                @Override
+                public void opcode(int opcode) {
+                    refs.opcodes.add(opcode);
                 }
             });
             r.refs.put(method, refs);

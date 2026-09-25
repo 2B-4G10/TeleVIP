@@ -27,7 +27,7 @@ import java.util.Map;
  */
 public final class TelegramFingerprints {
 
-    public static final int VERSION = 1;
+    public static final int VERSION = 2;
 
     private TelegramFingerprints() {
     }
@@ -625,7 +625,11 @@ public final class TelegramFingerprints {
 
         s.add(cls(progress).from(paramTypeWhere(browser, "void", ctx, uri, "boolean", "boolean", "boolean",
                 null, "java.lang.String", "boolean", "boolean", "boolean")));
-        s.add(method("Browser", "openUrlCS").named("openUrl").isStatic(true).sig("void", ctx, "java.lang.String"));
+        // openUrlInSystemBrowser has the same signature, but it goes straight to the ten-parameter
+        // overload; openUrl(Context, String) never does, whether or not R8 inlines the step between.
+        s.add(method("Browser", "openUrlCS").named("openUrl").isStatic(true).sig("void", ctx, "java.lang.String")
+                .where(not(callsSibling("void", ctx, uri, "boolean", "boolean", "boolean", progress,
+                        "java.lang.String", "boolean", "boolean", "boolean"))));
         s.add(method("Browser", "openUrlCSZ").named("openUrl").isStatic(true).sig("void", ctx, "java.lang.String", "boolean"));
         s.add(method("Browser", "openUrlCSZZ").named("openUrl").isStatic(true)
                 .sig("void", ctx, "java.lang.String", "boolean", "boolean"));
@@ -637,7 +641,10 @@ public final class TelegramFingerprints {
         s.add(method("Browser", "openUrlCUZZZOSZZZ").named("openUrl").isStatic(true)
                 .sig("void", ctx, uri, "boolean", "boolean", "boolean", progress, "java.lang.String", "boolean", "boolean", "boolean"));
 
-        s.add(method("Theme", "isCurrentThemeDark").isStatic(true).sig("boolean"));
+        // "return currentTheme.isDark()": one call, returned as is. isCurrentThemeDay is the same
+        // call negated (xor-int/lit8 ..., 1), or two calls where getActiveTheme() is not inlined.
+        s.add(method("Theme", "isCurrentThemeDark").isStatic(true).sig("boolean")
+                .where(callCount(1), not(usesOpcode(0xdf))));
         s.add(field("Theme", "chat_timePaint").isStatic(true).type("android.text.TextPaint")
                 .accessedBy("ChatMessageCell#measureTime"));
     }

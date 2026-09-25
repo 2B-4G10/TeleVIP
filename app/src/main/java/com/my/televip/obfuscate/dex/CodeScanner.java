@@ -38,6 +38,10 @@ public final class CodeScanner {
         /** Every key of a sparse-switch table, and every key a packed-switch covers. */
         default void switchKey(int key) {
         }
+
+        /** The opcode of every real instruction (payload tables are not instructions). */
+        default void opcode(int opcode) {
+        }
     }
 
     /** Width in 16-bit code units for each opcode, from the Dalvik instruction formats. */
@@ -88,6 +92,7 @@ public final class CodeScanner {
                 continue;
             }
 
+            v.opcode(op);
             switch (op) {
                 case 0x12: // const/4 vA, #+B: B is the signed top nibble of the unit
                     v.constant(((short) unit) >> 12);
