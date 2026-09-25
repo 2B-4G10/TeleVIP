@@ -130,7 +130,7 @@ public abstract class Symbol {
         String[] params;
         Boolean isStatic;
         int[] readPositions;
-        boolean voidable, narrowedStrings;
+        boolean voidable, narrowedStrings, narrowedReturn;
         final List<Body> facts = new ArrayList<>();
 
         MethodSymbol(String owner, String key) {
@@ -188,6 +188,16 @@ public abstract class Symbol {
             return this;
         }
 
+        /**
+         * R8 narrows a return type to the one class a method actually returns - a Runnable becomes
+         * the lambda class implementing it. Accept a return type that is a subtype of the source
+         * one, for call sites that do not depend on the declared type.
+         */
+        public MethodSymbol narrowedReturn() {
+            this.narrowedReturn = true;
+            return this;
+        }
+
         public MethodSymbol where(Body... facts) {
             for (Body f : facts) this.facts.add(f);
             return this;
@@ -226,7 +236,7 @@ public abstract class Symbol {
                     if (name.length() > 3) return Resolver.Attempt.of(named.get(0), true);
                 } else {
                     for (DexClass.Method m : named) {
-                        if (signatureFits(m, ret, want) && staticMatches(m)) {
+                        if (signatureFits(r, m, ret, want) && staticMatches(m)) {
                             return Resolver.Attempt.of(m, true);
                         }
                     }
@@ -236,7 +246,7 @@ public abstract class Symbol {
 
             List<DexClass.Method> matching = new ArrayList<>();
             for (DexClass.Method m : cls.methods) {
-                if (m.isConstructor() || !staticMatches(m) || !signatureFits(m, ret, want)) continue;
+                if (m.isConstructor() || !staticMatches(m) || !signatureFits(r, m, ret, want)) continue;
                 Boolean ok = holds(r, m);
                 if (ok == null) return Resolver.Attempt.waiting();
                 if (ok) matching.add(m);
@@ -248,8 +258,9 @@ public abstract class Symbol {
          * Exact signature, or - when the call site declared what it reads - the source signature
          * with unused parameters deleted, as long as every read position keeps its index.
          */
-        boolean signatureFits(DexClass.Method m, String ret, String[] want) {
-            if (!m.returnType().equals(ret) && !(voidable && m.returnType().equals("V"))) return false;
+        boolean signatureFits(Resolver r, DexClass.Method m, String ret, String[] want) {
+            if (!m.returnType().equals(ret) && !(voidable && m.returnType().equals("V"))
+                    && !(narrowedReturn && isSubtype(r, m.returnType(), ret))) return false;
             String[] actual = m.parameterTypes();
             if (actual.length == want.length) {
                 for (int i = 0; i < want.length; i++) {
@@ -269,6 +280,14 @@ public abstract class Symbol {
                 if (p >= actual.length || kept[p] != p) return false;
             }
             return true;
+        }
+
+        private static boolean isSubtype(Resolver r, String actual, String declared) {
+            DexClass c = r.index.byDescriptor(actual);
+            if (c == null) return false;
+            if (r.index.extendsClass(actual, declared)) return true;
+            for (String i : c.interfaces) if (i.equals(declared)) return true;
+            return false;
         }
 
         private boolean paramFits(String declared, String actual) {

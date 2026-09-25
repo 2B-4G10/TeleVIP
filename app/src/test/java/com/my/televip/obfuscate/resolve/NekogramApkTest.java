@@ -94,6 +94,10 @@ public class NekogramApkTest {
         assertEquals("r", mapping.resolveMethod("Browser", "openUrlCS"));
         // isCurrentThemeDay is the same call negated; only the un-negated one is isCurrentThemeDark.
         assertEquals("a1", mapping.resolveMethod("Theme", "isCurrentThemeDark"));
+        // Prevent Media: found by the kept MessagesController calls they make, although R8
+        // narrowed their Runnable returns to the lambda classes.
+        assertEquals("Ua", mapping.resolveMethod("ChatActivity", "sendSecretMediaDelete"));
+        assertEquals("Va", mapping.resolveMethod("ChatActivity", "sendSecretMessageRead"));
     }
 
     /** What cannot be pinned down must stay unresolved - these are the ones that would be guesses. */

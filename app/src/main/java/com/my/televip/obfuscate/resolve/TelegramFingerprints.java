@@ -27,7 +27,7 @@ import java.util.Map;
  */
 public final class TelegramFingerprints {
 
-    public static final int VERSION = 2;
+    public static final int VERSION = 3;
 
     private TelegramFingerprints() {
     }
@@ -529,8 +529,12 @@ public final class TelegramFingerprints {
                 .sig("void", "int", "int", "boolean", "int", "boolean", "int", "java.lang.Integer", "java.lang.Runnable"));
         s.add(method("ChatActivity", "scrollToMessageIdIIZIZIIABR").named("scrollToMessageId")
                 .sig("void", "int", "int", "boolean", "int", "boolean", "int", "java.lang.Integer", "byte[]", "java.lang.Runnable"));
-        s.add(method("ChatActivity", "sendSecretMediaDelete").sig("java.lang.Runnable", mo));
-        s.add(method("ChatActivity", "sendSecretMessageRead").sig("java.lang.Runnable", mo, "boolean"));
+        // Each is pinned by the kept MessagesController call it makes; R8 may narrow the returned
+        // Runnable to the lambda class, which the call site's before-hook does not care about.
+        s.add(method("ChatActivity", "sendSecretMediaDelete").sig("java.lang.Runnable", mo).narrowedReturn()
+                .where(callsNamed("org.telegram.messenger.MessagesController", "createDeleteShowOnceTask")));
+        s.add(method("ChatActivity", "sendSecretMessageRead").sig("java.lang.Runnable", mo, "boolean").narrowedReturn()
+                .where(callsNamed("org.telegram.messenger.MessagesController", "markMessageAsRead2")));
         s.add(method("ChatActivity", "updatePinnedMessageViewZ").named("updatePinnedMessageView").sig("void", "boolean"));
         s.add(method("ChatActivity", "updatePinnedMessageViewZI").named("updatePinnedMessageView").sig("void", "boolean", "int"));
 
