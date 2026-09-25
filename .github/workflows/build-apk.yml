@@ -144,13 +144,23 @@ jobs:
              "artifacts/TeleVip-$version-$short_sha-debug.apk"
 
           # Named app-release.apk when signed and app-release-unsigned.apk when not.
+          #
+          # An unsigned APK cannot be installed on any Android version - the installer rejects it
+          # before it looks at anything else, and all the user sees is "App not installed". It was
+          # being shipped anyway, next to the debug APK, which makes picking the wrong one of the
+          # two the obvious mistake. So it is built (it is still worth knowing the release variant
+          # compiles) but not published. Set the signing secrets and it appears.
           release_apk=$(find app/build/outputs/apk/release -name '*.apk' | head -n 1)
           case "$release_apk" in
-            *unsigned*) suffix="release-unsigned" ;;
-            *)          suffix="release" ;;
+            *unsigned*)
+              echo "release=none" >> "$GITHUB_OUTPUT"
+              echo "::warning::No signing secrets are set, so the release APK is unsigned and cannot be installed. It is omitted from the artifact; install the debug APK instead."
+              ;;
+            *)
+              cp "$release_apk" "artifacts/TeleVip-$version-$short_sha-release.apk"
+              echo "release=signed" >> "$GITHUB_OUTPUT"
+              ;;
           esac
-          cp "$release_apk" "artifacts/TeleVip-$version-$short_sha-$suffix.apk"
-          echo "release_suffix=$suffix" >> "$GITHUB_OUTPUT"
 
           ls -lh artifacts
 
@@ -167,12 +177,15 @@ jobs:
       - name: Write the install instructions
         run: |
           artifact="TeleVip-${{ steps.collect.outputs.version }}-${{ steps.collect.outputs.short_sha }}"
-          release_apk="...-${{ steps.collect.outputs.release_suffix }}.apk"
 
-          if [ "${{ steps.collect.outputs.release_suffix }}" = "release" ]; then
-            release_note="**Yes** - signed with the repository key"
+          # A markdown table ends at the first blank line, so the optional release row has to be
+          # part of the table text rather than appended after it.
+          if [ "${{ steps.collect.outputs.release }}" = "signed" ]; then
+            release_row="| \`...-release.apk\` | **Yes** - signed with the repository key |"
+            release_note=""
           else
-            release_note="No - unsigned, see below"
+            release_row=""
+            release_note="There is no release APK in this build: the signing secrets are not set, an unsigned APK cannot be installed, so it is not published."
           fi
 
           cat >> "$GITHUB_STEP_SUMMARY" <<EOF
@@ -189,7 +202,9 @@ jobs:
           | File | Can you install it? |
           |---|---|
           | \`...-debug.apk\` | **Yes** - signed with the debug key |
-          | \`$release_apk\` | $release_note |
+          $release_row
+
+          $release_note
 
           ### 2. Install it
 

@@ -41,9 +41,13 @@ android {
                 keyAlias = keystoreProperties["keyAlias"]
                 keyPassword = keystoreProperties["keyPassword"]
 
-                // v1 (JAR signing) is only required below API 24 and minSdk here is 27, so AGP
-                // signs with v2 alone. Verified with 'apksigner verify --verbose': v2 true.
+                // v1 (JAR signing) is only required below API 24 and minSdk here is 27, so it
+                // is left at AGP's default and carries no weight here. What matters is that both
+                // v2 and v3 are on: v3 is not optional-but-nice, it is the scheme modern Android
+                // reads first, and AGP leaves it OFF unless asked. An APK with v2 alone is a
+                // needlessly narrow target on new releases.
                 enableV2Signing = true
+                enableV3Signing = true
             }
         }
     }
