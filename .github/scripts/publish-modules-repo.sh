@@ -25,8 +25,8 @@ if [ "$(gh api "repos/$repo" --jq '.permissions.push // false' 2>/dev/null)" != 
 fi
 
 # The description is the module's display name there; the maintainer role may not be allowed it.
-gh api -X PATCH "repos/$repo" -f description=TeleVip -f homepage="https://github.com/$GITHUB_REPOSITORY" >/dev/null \
-  || echo "::warning::Could not set the description of $repo; set it to TeleVip by hand."
+gh api -X PATCH "repos/$repo" -f description="Re: TeleVIP" -f homepage="https://github.com/$GITHUB_REPOSITORY" >/dev/null \
+  || echo "::warning::Could not set the description of $repo; set it to \"Re: TeleVIP\" by hand."
 
 mkdir -p build/modules-repo
 cp .github/modules-repo/SUMMARY build/modules-repo/SUMMARY
