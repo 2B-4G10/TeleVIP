@@ -133,6 +133,9 @@ final class CallSites {
         OPTIONAL.put("org.telegram.messenger.R$drawable", "stripped by some builds; icons are looked up in the resource table");
         OPTIONAL.put("org.telegram.tgnet.TLRPC$TL_contacts_getSponsoredPeers",
                 "R8 drops it from builds that never send it (NagramX removes search ads itself)");
+        OPTIONAL.put("MessagesController#getSponsoredMessages",
+                "Nagram and NagramX return no sponsored posts from it themselves, which R8 leaves nothing of;"
+                        + " the ad requests and their answers are still blocked");
 
         String[] row = {"org.telegram.ui.SettingsActivity", "org.telegram.ui.SettingsActivity$SettingCell$Factory",
                 "SettingsActivity$SettingCell$Factory#of|SettingsActivity$SettingCell$Factory#ofIIIICCC",
