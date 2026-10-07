@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.1.1 — ads blocked at every step
+
+- **Block Ads now has three barriers instead of one**, so a channel's sponsored post cannot get
+  through if one of them misses:
+  1. the request that fetches ads is dropped before it is sent, as before;
+  2. if an ad request is sent anyway, the server's answer is read as "no ads";
+  3. a chat that asks for its sponsored posts is told there are none, whatever was fetched or
+     cached.
+
+  This covers sponsored posts in channels and bot chats, the video player's ads and the "Ad"
+  results in chat search. The pinned proxy sponsor channel stays removed as before.
+- **Block Ads is on by default.** If you never touched the switch, it is now on; if you turned
+  it off, it stays off.
+
 ## 1.1.0 — new package name, for the Xposed Modules Repo
 
 - **TeleVip's package name is now `io.github.re_televip.televip`** (it was `com.my.televip`).
