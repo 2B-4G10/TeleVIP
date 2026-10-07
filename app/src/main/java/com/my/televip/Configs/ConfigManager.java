@@ -216,7 +216,8 @@ public class ConfigManager {
             ConfigPreferences.putBoolean(Keys.BlockAds, true);
             ConfigPreferences.putBoolean(Keys.HideProxySponsor, false);
         }
-        blockAds = new ConfigItem(ConfigItem.SWITCH, Keys.BlockAds, true, ConfigPreferences.getBoolean(Keys.BlockAds), AdBlock::init);
+        // On until the user turns it off.
+        blockAds = new ConfigItem(ConfigItem.SWITCH, Keys.BlockAds, true, ConfigPreferences.getBoolean(Keys.BlockAds, true), AdBlock::init);
         items.add(blockAds);
 
         if (!ClientChecker.check(ClientChecker.ClientType.Telegraph) && !ClientChecker.check(ClientChecker.ClientType.Nekogram) && !ClientChecker.check(ClientChecker.ClientType.Cherrygram)) {

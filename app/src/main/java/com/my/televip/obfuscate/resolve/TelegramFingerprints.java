@@ -27,7 +27,7 @@ import java.util.Map;
  */
 public final class TelegramFingerprints {
 
-    public static final int VERSION = 11;
+    public static final int VERSION = 12;
 
     private TelegramFingerprints() {
     }
@@ -321,6 +321,9 @@ public final class TelegramFingerprints {
         s.add(cls("org.telegram.tgnet.TLRPC$TL_messages_getSponsoredMessages").from(serializingConstant(0x3d6ce850)));
         s.add(cls("org.telegram.tgnet.TLRPC$TL_contacts_getSponsoredPeers").from(serializingConstant(0xb6c8c393)));
         s.add(cls("org.telegram.tgnet.TLRPC$TL_help_getPromoData").from(serializingConstant(0xc0977421)));
+        // The "no ads" answers to the first two, which stand in for a real answer that gets through.
+        s.add(tl("org.telegram.tgnet.TLRPC$TL_messages_sponsoredMessagesEmpty", 0x1839490f));
+        s.add(tl("org.telegram.tgnet.TLRPC$TL_contacts_sponsoredPeersEmpty", 0xea32b4b1));
         s.add(cls("org.telegram.tgnet.tl.TL_stories$TL_stories_incrementStoryViews")
                 .from(serializingConstant(-1308456197)));
         s.add(cls("org.telegram.tgnet.tl.TL_stories$TL_stories_readStories").from(serializingConstant(-1521034552)));
@@ -533,6 +536,10 @@ public final class TelegramFingerprints {
         s.add(method("MessagesController", "getInputChannelO2").named("getInputChannel")
                 .sig("org.telegram.tgnet.TLRPC$InputChannel", "org.telegram.tgnet.TLRPC$InputPeer"));
         s.add(method("MessagesController", "getInstance").sig("org.telegram.messenger.MessagesController", "int"));
+        // The sponsored posts a chat shows: cached for five minutes, else fetched. Its return type
+        // is an inner class nothing else names.
+        s.add(method("MessagesController", "getSponsoredMessages").sig(Symbol.ANY, "long")
+                .where(refersTo("org.telegram.tgnet.TLRPC$TL_messages_getSponsoredMessages")));
         s.add(method("MessagesController", "isChatNoForwardsJ").named("isChatNoForwards").sig("boolean", "long")
                 .where(callsSymbol("MessagesController#isChatNoForwardsO")));
         s.add(method("MessagesController", "isChatNoForwardsO").named("isChatNoForwards")

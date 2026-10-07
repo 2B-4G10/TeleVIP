@@ -3,7 +3,9 @@ package com.my.televip.obfuscate.resolve;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
+import com.my.televip.obfuscate.dex.DexClass;
 import com.my.televip.obfuscate.dex.DexIndex;
+import com.my.televip.obfuscate.dex.DexNames;
 
 import org.junit.Test;
 
@@ -87,6 +89,39 @@ public class ClientApkTest {
         if (wrong.isEmpty()) return;
         String md = "\n### Fingerprints that find the wrong symbol\n\n| Symbol | Found | Real |\n|---|---|---|\n";
         for (String w : wrong) md += "| " + w + " |\n";
+        writeReport(md);
+        fail(md);
+    }
+
+    /**
+     * AdBlock finds each ad request's deserializeResponse by its shape, not its name (see
+     * AdBlock#answerReader): exactly one instance method taking (stream, int, boolean) and
+     * returning something. Requests a build does not have are the call-site check's business.
+     */
+    @Test
+    public void adAnswersCanBeReplaced() throws Exception {
+        String path = System.getenv("TELEVIP_CLIENT_APK");
+        assumeTrue("set TELEVIP_CLIENT_APK to run", path != null && new File(path).isFile());
+
+        DexIndex index = DexIndex.fromApk(new File(path));
+        Mapping mapping = new Resolver(index, TelegramFingerprints.owners())
+                .resolve(TelegramFingerprints.all(), new Resolver.Report());
+        List<String> wrong = new ArrayList<>();
+        for (String request : new String[]{"org.telegram.tgnet.TLRPC$TL_messages_getSponsoredMessages",
+                "org.telegram.tgnet.TLRPC$TL_contacts_getSponsoredPeers"}) {
+            String name = mapping.classes().containsKey(request) ? mapping.classes().get(request) : request;
+            DexClass cls = index.byDescriptor(DexNames.toDescriptor(name));
+            if (cls == null) continue;
+            int readers = 0;
+            for (DexClass.Method m : cls.methods) {
+                String[] p = m.parameterTypes();
+                if (!m.isStatic() && !m.isConstructor() && p.length == 3 && p[1].equals("I") && p[2].equals("Z")
+                        && !m.returnType().equals("V")) readers++;
+            }
+            if (readers != 1) wrong.add(request + " (" + name + ") has " + readers);
+        }
+        if (wrong.isEmpty()) return;
+        String md = "\n### Ad answers Block Ads cannot replace\n\n" + String.join("\n", wrong) + "\n";
         writeReport(md);
         fail(md);
     }

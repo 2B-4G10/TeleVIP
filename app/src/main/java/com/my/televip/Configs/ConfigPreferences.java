@@ -16,11 +16,16 @@ public class ConfigPreferences {
     }
 
     public static boolean getBoolean(String key) {
+        return getBoolean(key, false);
+    }
+
+    /** The switch's setting, or {@code byDefault} until the user has set it. */
+    public static boolean getBoolean(String key, boolean byDefault) {
         try {
-            return sharedPreferences.getBoolean(key, false);
+            return sharedPreferences.getBoolean(key, byDefault);
         } catch (ClassCastException e) {
             sharedPreferences.edit().remove(key).apply();
-            return false;
+            return byDefault;
         }
     }
 

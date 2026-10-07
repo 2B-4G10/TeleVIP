@@ -41,7 +41,7 @@ public abstract class Symbol {
         Collection<DexClass> candidates(Resolver r);
     }
 
-    /** A method parameter of any type: one no symbol names (e.g. a renamed helper class). */
+    /** A method parameter or return of any type: one no symbol names (e.g. a renamed helper class). */
     public static final String ANY = "*";
 
     public static ClassSymbol cls(String originalName) {
@@ -261,7 +261,7 @@ public abstract class Symbol {
             String[] want = null;
             String ret = null;
             if (returnType != null) {
-                ret = r.descriptor(returnType);
+                ret = ANY.equals(returnType) ? ANY : r.descriptor(returnType);
                 want = new String[params.length];
                 for (int i = 0; i < params.length; i++) {
                     want[i] = ANY.equals(params[i]) ? ANY : r.descriptor(params[i]);
@@ -312,7 +312,7 @@ public abstract class Symbol {
          * with unused parameters deleted, as long as every read position keeps its index.
          */
         boolean signatureFits(Resolver r, DexClass.Method m, String ret, String[] want) {
-            if (!m.returnType().equals(ret) && !(voidable && m.returnType().equals("V"))
+            if (!ret.equals(ANY) && !m.returnType().equals(ret) && !(voidable && m.returnType().equals("V"))
                     && !(narrowedReturn && isSubtype(r, m.returnType(), ret))) return false;
             String[] actual = m.parameterTypes();
             // The instance becomes the first parameter; R8 may delete unused ones on top of that.
