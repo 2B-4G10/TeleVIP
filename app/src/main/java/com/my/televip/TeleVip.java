@@ -20,7 +20,7 @@ public class TeleVip {
     
     public static void startHook(Context context) {
         try {
-            // Before the table loads: decide whether it describes this build at all.
+            // Before any feature looks a name up: the names this build really uses, from its APK.
             RuntimeMappings.activate(context, Utils.pkgName);
             resolverRegistry.loadParameter();
             Translator.init();

@@ -27,10 +27,9 @@ import java.util.concurrent.TimeUnit;
  * release, and obfuscated forks rename nearly everything. The static per-client tables name what
  * one specific build called each class. Run against any other build of that client, they are not
  * merely out of date - most of those names still exist, attached to different classes, so hooks
- * land on the wrong code. So a table is only used on exactly the build it was made from. On every
- * other build, and for clients without a table, every symbol is resolved
- * against the running APK itself: by its real name where the build kept it, by fingerprint where it
- * was renamed. What cannot be pinned down unambiguously is left unresolved and shows up as missing
+ * land on the wrong code - and even on their own build they lack every symbol added since. So
+ * every symbol is resolved against the running APK itself, on every client and build: by its real
+ * name where the build kept it, by fingerprint where it was renamed. What cannot be pinned down unambiguously is left unresolved and shows up as missing
  * in the hook health report, rather than being guessed.</p>
  *
  * <p>Resolution starts as soon as the client's class loader exists, off the main thread, so it is
@@ -85,21 +84,19 @@ public final class RuntimeMappings {
     // ------------------------------------------------------------ activation
 
     /**
-     * Decides, once the first activity exists, whether the static table can be trusted for this
-     * build. Returns normally in every case; failures leave the client on name lookups only.
+     * Puts the APK's mapping in force once the first activity exists. Returns normally in every
+     * case; failures leave the client on name lookups only.
      */
     public static void activate(Context context, String packageName) {
         try {
             ClientChecker.ClientType client = ClientChecker.ClientType.fromPackage(packageName);
             if (client == null) return;
 
+            // Always from the APK, even on the build a static table was made from: the tables lack
+            // every symbol added since (Block Ads' among them), and ClientChecker's verified build -
+            // which once picked the table - moves on whenever a release is checked against a newer
+            // build. Resolving from the APK is also what the client checks test, on every build.
             long running = versionCode(context);
-            Long verified = client.hasStaticTable() ? ClientChecker.verifiedVersionCode(client) : null;
-            if (verified != null && verified == running) {
-                summary = "static table matches this build (" + running + ")";
-                Logger.l("obfuscation: " + summary);
-                return;
-            }
 
             long start = System.nanoTime();
             Mapping mapping = null;
@@ -117,8 +114,7 @@ public final class RuntimeMappings {
             }
             active = mapping;
             long ms = (System.nanoTime() - start) / 1_000_000;
-            summary = "build " + running + (verified == null ? " has no static table" : " is not the table's ("
-                    + verified + ")") + ", resolved "
+            summary = "build " + running + ", resolved "
                     + mapping.size() + " symbols from the APK in " + ms + " ms"
                     + (lastReport == null ? " (cached)" : " - " + describe(lastReport));
             Logger.l("obfuscation: " + summary);

@@ -2,6 +2,7 @@ package com.my.televip.settings.hook;
 
 
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import com.my.televip.Class.ClassLoad;
@@ -231,12 +232,41 @@ public class SettingsHook {
     }
 
     private static void setGhostIcon(Object cell, String iconField, GhostDrawable ghostDrawable) {
+        ImageView iconView = null;
         try {
-            ImageView iconView = (ImageView) XReflect.getObjectField(cell, iconField);
-            if (iconView != null) iconView.setImageDrawable(ghostDrawable);
-        } catch (Throwable t) {
-            Logger.e(t);
+            iconView = (ImageView) XReflect.getObjectField(cell, iconField);
+        } catch (Throwable renamed) {
+            // iconView renamed and not resolved (Nekogram 12.10.6): the row's only image is its icon.
         }
+        if (iconView == null && cell instanceof ViewGroup) iconView = onlyImage((ViewGroup) cell);
+        if (iconView != null) {
+            iconView.setImageDrawable(ghostDrawable);
+        } else {
+            Logger.w("settings: no icon view on TeleVip's row, it keeps the default icon");
+        }
+    }
+
+    /** The one ImageView inside {@code group}, or null if there is none or more than one. */
+    private static ImageView onlyImage(ViewGroup group) {
+        ImageView found = null;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            ImageView image = child instanceof ImageView ? (ImageView) child
+                    : child instanceof ViewGroup ? onlyImage((ViewGroup) child) : null;
+            if (image == null && child instanceof ViewGroup && hasImage((ViewGroup) child)) return null;
+            if (image == null) continue;
+            if (found != null) return null;
+            found = image;
+        }
+        return found;
+    }
+
+    private static boolean hasImage(ViewGroup group) {
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child instanceof ImageView || child instanceof ViewGroup && hasImage((ViewGroup) child)) return true;
+        }
+        return false;
     }
 
     public void oldSettings(SettingsController settingsController){

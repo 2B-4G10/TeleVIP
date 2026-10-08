@@ -27,11 +27,11 @@ public class ClientChecker {
     }
 
     /**
-     * Client build each resolver table was generated against.
+     * The client build TeleVip was last checked against, logged next to the running one.
      *
-     * <p>A client's static table (Nekogram, Cherrygram, Telegraph) is only used on exactly this
-     * build; any other build, and any client without a table, is resolved from its own APK (see
-     * RuntimeMappings).</p>
+     * <p>It no longer decides anything: every build is resolved from its own APK (see
+     * RuntimeMappings). It used to pick a client's static table on exactly this build, which went
+     * wrong once these were moved to newer builds than the tables were made from.</p>
      *
      * <p>The number in brackets is {@code PackageInfo.versionCode}. Telegram encodes its build
      * code and distribution channel in it as {@code code * 10 + channel}, where 1 and 2 are the
@@ -67,19 +67,6 @@ public class ClientChecker {
 
     public static String verifiedBuild(ClientType client) {
         return client == null ? null : VERIFIED_BUILD.get(client);
-    }
-
-    /** The versionCode in brackets in {@link #VERIFIED_BUILD}, or null if there is none. */
-    public static Long verifiedVersionCode(ClientType client) {
-        String build = verifiedBuild(client);
-        if (build == null) return null;
-        int open = build.lastIndexOf('('), close = build.lastIndexOf(')');
-        if (open < 0 || close <= open) return null;
-        try {
-            return Long.parseLong(build.substring(open + 1, close).trim());
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 
     /** Logs the running client build against the one TeleVip was last verified on. */
