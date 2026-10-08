@@ -32,8 +32,8 @@ android {
         applicationId = "io.github.re_televip.televip"
         minSdk = 27
         targetSdk = 37
-        versionCode = 351
-        versionName = "1.1.2"
+        versionCode = 352
+        versionName = "1.1.3"
 
         vectorDrawables {
             useSupportLibrary = true

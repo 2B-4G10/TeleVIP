@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.3 — TeleVip's own icon in Settings
+
+- **TeleVip's entry in Settings shows TeleVip's app icon** — the paper plane on its yellow tile —
+  instead of the ghost.
+- Also from 1.1.2: Cherrygram 11.3.0, which is built on Telegram 12.10.6, had the same problem as
+  Nekogram 12.10.6 and works again too.
+
 ## 1.1.2 — Nekogram 12.10.6 works again
 
 - **Fixed: on Nekogram 12.10.6 TeleVip did almost nothing** — no TeleVip entry in Settings, ads
