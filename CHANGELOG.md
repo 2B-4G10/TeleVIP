@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.2 — Nekogram 12.10.6 works again
+
+- **Fixed: on Nekogram 12.10.6 TeleVip did almost nothing** — no TeleVip entry in Settings, ads
+  still shown, and most other features off. Since 1.0.8, TeleVip had mistaken that build for one
+  covered by an old name table made from Nekogram 12.8.1, so it looked for classes that do not
+  exist in 12.10.6. TeleVip now always reads the names from the installed app, on every client
+  and build, which is what the weekly client checks test. Cherrygram's table was mislabelled the
+  same way.
+- **TeleVip's entry is back at the top of Settings, with its ghost icon.** On builds that rename
+  the row's icon view beyond recognition, TeleVip now finds the icon by itself.
+
 ## 1.1.1 — ads blocked at every step
 
 - **Block Ads now has three barriers instead of one**, so a channel's sponsored post cannot get
