@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.5 — the app is called Re: TeleVIP
+
+- **The module is now named "Re: TeleVIP"** in LSPosed / Vector and in Android's app list (it
+  was "TeleVip"), and as the title of the account-age dialog in profile menus. The README, here
+  and in the Xposed Modules Repo, uses the new name too. The package name and the APK's file
+  name are unchanged.
+
 ## 1.1.4 — Re: TeleVIP Settings
 
 - **TeleVip's entry in Settings is now called "Re: TeleVIP Settings 🛸"**, with "Made by:
