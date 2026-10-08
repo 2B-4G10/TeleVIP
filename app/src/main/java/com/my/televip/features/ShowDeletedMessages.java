@@ -11,6 +11,7 @@ import com.my.televip.hooks.HMethod;
 import com.my.televip.logging.Logger;
 import com.my.televip.messages.MessageStorage;
 import com.my.televip.obfuscate.AutomationResolver;
+import com.my.televip.reflect.XReflect;
 import com.my.televip.utils.Utils;
 import com.my.televip.virtuals.androidx.LongSparseArray;
 import com.my.televip.virtuals.messenger.MessageObject;
@@ -22,8 +23,10 @@ import com.my.televip.virtuals.ui.Cells.ChatMessageCell;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.BiConsumer;
 
 public class ShowDeletedMessages {
 
@@ -163,28 +166,37 @@ public class ShowDeletedMessages {
                     }
                 });
 
-            HMethod.hookMethod(
-                    ClassLoad.getClass(ClassNames.MESSAGES_CONTROLLER),
-                    AutomationResolver.resolve("MessagesController", "deleteMessages", AutomationResolver.ResolverType.Method),
-                    AutomationResolver.merge(AutomationResolver.resolveObject("deleteMessages", new Class<?>[]{java.util.ArrayList.class,
-                                    java.util.ArrayList.class,
-                                    ClassLoad.getClass(ClassNames.TLRPC_ENCRYPTED_CHAT),
-                                    long.class,
-                                    boolean.class,
-                                    int.class,
-                                    boolean.class,
-                                    long.class,
-                                    ClassLoad.getClass(ClassNames.TL_OBJECT),
-                                    int.class,
-                                    boolean.class,
-                                    int.class}),
-                            new AbstractMethodHook() {
-                                @Override
-                                protected void beforeMethod(MethodHookParam param) {
-                                    isDeleteMessage = true;
-                                }
-                            }
-                    ));
+            Class<?> messagesController = ClassLoad.getClass(ClassNames.MESSAGES_CONTROLLER);
+            Class<?>[] deleteParams = AutomationResolver.resolveObject("deleteMessages", new Class<?>[]{java.util.ArrayList.class,
+                    java.util.ArrayList.class,
+                    ClassLoad.getClass(ClassNames.TLRPC_ENCRYPTED_CHAT),
+                    long.class,
+                    boolean.class,
+                    int.class,
+                    boolean.class,
+                    long.class,
+                    ClassLoad.getClass(ClassNames.TL_OBJECT),
+                    int.class,
+                    boolean.class,
+                    int.class});
+            Method delete = XReflect.findMethodExactIfExists(messagesController,
+                    AutomationResolver.resolve("MessagesController", "deleteMessages", AutomationResolver.ResolverType.Method), deleteParams);
+            if (delete == null && messagesController != null) {
+                // Momogram 12.10.5 adds a completion callback at the end instead.
+                Class<?>[] withCallback = Arrays.copyOf(deleteParams, deleteParams.length + 1);
+                withCallback[deleteParams.length] = BiConsumer.class;
+                delete = XReflect.findMethodExactIfExists(messagesController,
+                        AutomationResolver.resolveOverload("MessagesController", "deleteMessagesAAOJZIZJOIZIB", "deleteMessages"), withCallback);
+            }
+            if (delete == null)
+                Logger.w("Failed to hook deleteMessages! Reason: No method found, " + Utils.issue);
+            else
+                HMethod.hookMethod(delete, new AbstractMethodHook() {
+                    @Override
+                    protected void beforeMethod(MethodHookParam param) {
+                        isDeleteMessage = true;
+                    }
+                });
 
             HMethod.hookMethod(ClassLoad.getClass(ClassNames.NOTIFICATION_CENTER), AutomationResolver.resolve("NotificationCenter", "postNotificationName", AutomationResolver.ResolverType.Method), AutomationResolver.merge(AutomationResolver.resolveObject("postNotificationName", new Class<?>[]{int.class, Object[].class}), new AbstractMethodHook() {
                 @Override

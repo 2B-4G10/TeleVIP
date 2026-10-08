@@ -83,6 +83,9 @@ final class CallSites {
             NOT_ON.put(pkg, concat(profileExtras, "SecretMediaSave"));
         }
         NOT_ON.put("ir.ilmili.telegraph", concat(profileExtras, "DisableNumberRounding", "HideUpdateApp", "FixTLError"));
+        for (String pkg : new String[]{"nekox.messenger.broken", "momo.gram"}) {
+            NOT_ON.put(pkg, new String[]{"HideUpdateApp"});   // Momogram has its own updater
+        }
         NOT_ON.put("xyz.nextalone.nagram", new String[]{"ChatHook"});
         NOT_ON.put("org.telegram.plus", new String[]{"ChatHook"});
     }
@@ -159,6 +162,10 @@ final class CallSites {
                 {"SQLitePreparedStatement#step|SQLitePreparedStatement.sqliteStatementHandle"}});
         ROUTES.put("A channel's input channel", new String[][]{
                 {"MessagesController#getInputChannelO2|MessagesController#getInputChannelJ"}});
+        ROUTES.put("Show deleted messages: the delete call", new String[][]{
+                {"MessagesController#deleteMessages|MessagesController#deleteMessagesAAOJZIZJOIZIB"}});
+        ROUTES.put("Save secret media: the file a message is saved to", new String[][]{
+                {"FileLoader#getPathToMessage|FileLoader#getPathToMessageOZ|FileLoader#getPathToMessageOZZ"}});
         ROUTES.put("Applying a pts update", new String[][]{
                 {"MessagesController#processNewDifferenceParams|MessagesController#processNewDifferenceParamsIII"}});
         ROUTES.put("Jump to message", new String[][]{

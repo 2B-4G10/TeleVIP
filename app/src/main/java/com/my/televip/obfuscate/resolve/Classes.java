@@ -370,6 +370,19 @@ public final class Classes {
         };
     }
 
+    /** At least one of the facts holds. */
+    public static Symbol.ClassFact anyOf(final Symbol.ClassFact... facts) {
+        return (r, c) -> {
+            boolean undecided = false;
+            for (Symbol.ClassFact f : facts) {
+                Boolean b = f.test(r, c);
+                if (b == null) undecided = true;
+                else if (b) return true;
+            }
+            return undecided ? null : false;
+        };
+    }
+
     /** Declares a constructor taking these parameters. */
     /** Has a constructor of this arity whose first parameter is {@code firstParam}. */
     public static Symbol.ClassFact hasConstructorFrom(final String firstParam, final int arity) {

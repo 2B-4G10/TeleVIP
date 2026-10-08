@@ -57,13 +57,16 @@ public class TextCheckCell {
         }
     }
 
+    /** The title, or null where it is Telegram's own SimpleTextView rather than a TextView (Momogram). */
     public TextView getTextView(){
+        Object title;
         try {
-            return (TextView) XReflect.getObjectField(textCell,AutomationResolver.resolve("TextCheckCell","textView", AutomationResolver.ResolverType.Field));
+            title = XReflect.getObjectField(textCell,AutomationResolver.resolve("TextCheckCell","textView", AutomationResolver.ResolverType.Field));
         } catch (Throwable unresolved) {
             // The field name did not resolve for this build; the title is the first TextView.
             return firstTextView((View) textCell);
         }
+        return title instanceof TextView ? (TextView) title : null;
     }
 
     public View getView(){

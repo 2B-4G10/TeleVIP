@@ -127,10 +127,13 @@ public class SettingsAdapter {
                                 false
                         );
                     }
-                    textCheck.getTextView().setLines(0);
-                    textCheck.getTextView().setMaxLines(0);
-                    textCheck.getTextView().setSingleLine(false);
-                    textCheck.getTextView().setEllipsize(null);
+                    TextView title = textCheck.getTextView();
+                    if (title != null) {   // long titles wrap where the title is a TextView
+                        title.setLines(0);
+                        title.setMaxLines(0);
+                        title.setSingleLine(false);
+                        title.setEllipsize(null);
+                    }
                     break;
                 case ConfigItem.EXPANDABLE_SWITCH:
                     row.expandable.addChildren(item);

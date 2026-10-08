@@ -710,6 +710,10 @@ public abstract class Symbol {
                 if (writer == null && r.isResolvedOrPending(writtenBy)) return Resolver.Attempt.waiting();
                 if (writer == null) return Resolver.Attempt.notFound();
                 String altDesc = alternativeType == null ? null : r.descriptor(alternativeType);
+                // Counting reads before the other type is known would skip its fields.
+                if (alternativeType != null && altDesc == null && r.pendingOrResolvable(alternativeType)) {
+                    return Resolver.Attempt.waiting();
+                }
                 List<String> order = new ArrayList<>();
                 for (Body.Refs.FieldRef f : Body.Refs.of(r, writer).fields) {
                     boolean typeFits = f.type.equals(typeDesc) || f.type.equals(altDesc)

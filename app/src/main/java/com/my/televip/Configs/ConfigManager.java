@@ -241,10 +241,13 @@ public class ConfigManager {
 
         if (!ClientChecker.check(ClientChecker.ClientType.Telegraph)) {
             disableNumberRounding = new ConfigItem(ConfigItem.SWITCH, Keys.DisableNumberRounding, "5.3K -> 5300", ConfigPreferences.getBoolean(Keys.DisableNumberRounding), DisableNumberRounding::init);
-            hideUpdateApp = new ConfigItem(ConfigItem.SWITCH, Keys.HideUpdateApp, true, ConfigPreferences.getBoolean(Keys.HideUpdateApp), HideUpdateApp::init);
             fixTLError = new ConfigItem(ConfigItem.SWITCH, Keys.FixTLError, ConfigPreferences.getBoolean(Keys.FixTLError), FixTLError::init);
             items.add(disableNumberRounding);
-            items.add(hideUpdateApp);
+            // Momogram updates itself through its own updater, which this switch does not reach.
+            if (!ClientChecker.check(ClientChecker.ClientType.Momogram)) {
+                hideUpdateApp = new ConfigItem(ConfigItem.SWITCH, Keys.HideUpdateApp, true, ConfigPreferences.getBoolean(Keys.HideUpdateApp), HideUpdateApp::init);
+                items.add(hideUpdateApp);
+            }
             items.add(fixTLError);
         }
 
