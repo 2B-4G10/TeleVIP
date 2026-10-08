@@ -1,0 +1,40 @@
+name: Prune old versions
+
+# One-off: deletes every release, then every tag, except the current version's, here and in the
+# Xposed Modules Repo. Nothing is deleted in a repository that lacks the current version's
+# release or tag.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prune:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Work out the current version
+        id: version
+        run: |
+          pkg=$(sed -n 's/^ *applicationId = "\(.*\)"$/\1/p' app/build.gradle)
+          code=$(sed -n 's/^ *versionCode = \([0-9]*\)$/\1/p' app/build.gradle)
+          name=$(sed -n 's/^ *versionName = "\(.*\)"$/\1/p' app/build.gradle)
+          echo "modules_repo=Xposed-Modules-Repo/$pkg" >> "$GITHUB_OUTPUT"
+          echo "tag=v$name" >> "$GITHUB_OUTPUT"
+          echo "modules_tag=$code-$name" >> "$GITHUB_OUTPUT"
+
+      - name: Prune this repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          .github/scripts/prune-releases.sh "$GITHUB_REPOSITORY" "${{ steps.version.outputs.tag }}"
+          .github/scripts/prune-tags.sh "$GITHUB_REPOSITORY" "${{ steps.version.outputs.tag }}"
+
+      - name: Prune the Xposed Modules Repo
+        env:
+          GH_TOKEN: ${{ secrets.MODULES_REPO_TOKEN }}
+        run: |
+          .github/scripts/prune-releases.sh "${{ steps.version.outputs.modules_repo }}" "${{ steps.version.outputs.modules_tag }}"
+          .github/scripts/prune-tags.sh "${{ steps.version.outputs.modules_repo }}" "${{ steps.version.outputs.modules_tag }}"
