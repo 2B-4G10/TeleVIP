@@ -18,40 +18,94 @@ import com.my.televip.settings.controller.SettingsController;
 import com.my.televip.utils.DialogUtils;
 import com.my.televip.utils.Utils;
 import com.my.televip.virtuals.Theme;
-import com.my.televip.virtuals.androidx.ViewHolder;
 import com.my.televip.virtuals.messenger.browser.Browser;
 import com.my.televip.virtuals.ui.Cells.ExpandableTextCheckCell;
 import com.my.televip.virtuals.ui.Cells.HeaderCell;
+import com.my.televip.virtuals.ui.Cells.ShadowSectionCell;
 import com.my.televip.virtuals.ui.Cells.TextCheckCell;
 import com.my.televip.virtuals.ui.Cells.TextInfoCell;
 import com.my.televip.virtuals.ui.Cells.TextSettingsCell;
 
-import com.my.televip.reflect.XReflect;
-
+/** Turns each of ConfigManager's items into a row of TeleVip's settings list. */
 public class SettingsAdapter {
 
     private static boolean isLongText = false;
-
-    public static int getRow(int position) { return ConfigManager.getItems().get(position).getType(); }
 
     public static int getRowCount() {
         return ConfigManager.getItems().size();
     }
 
-    public static void onBindViewHolder(Object holder, SettingsController settingsController, int position, int viewType) {
+    /** One row: its view, and the cell inside it that {@link #bind} fills in. */
+    public static final class Row {
+        final View itemView;
+        HeaderCell header;
+        TextCheckCell check;
+        TextSettingsCell settings;
+        ExpandableTextCheckCell expandable;
+        TextInfoCell info;
+
+        private Row(View itemView) {
+            this.itemView = itemView;
+        }
+    }
+
+    /** An empty row for the item at {@code position}, made of the client's own cells. */
+    public static Row createRow(Context context, int position) {
+        Row row;
+        switch (ConfigManager.getItems().get(position).getType()) {
+            case ConfigItem.SWITCH: {
+                TextCheckCell cell = SettingsCells.createTextCheckCell(context);
+                row = new Row(cell.getView());
+                row.check = cell;
+                break;
+            }
+            case ConfigItem.TEXT: {
+                TextSettingsCell cell = SettingsCells.createTextSettingsCell(context);
+                row = new Row(cell.getView());
+                row.settings = cell;
+                break;
+            }
+            case ConfigItem.DIVIDER:
+                row = new Row(new ShadowSectionCell(context).getView());
+                break;
+            case ConfigItem.INFO: {
+                TextInfoCell cell = SettingsCells.createTextInfoCell(context);
+                row = new Row(cell);
+                row.info = cell;
+                break;
+            }
+            case ConfigItem.EXPANDABLE_SWITCH: {
+                ExpandableTextCheckCell cell = SettingsCells.createExpandableTextCheckCell(context);
+                row = new Row(cell);
+                row.expandable = cell;
+                break;
+            }
+            case ConfigItem.HEADER:
+            default: {
+                HeaderCell cell = SettingsCells.createHeaderCell(context);
+                row = new Row(cell.getView());
+                row.header = cell;
+                break;
+            }
+        }
+        return row;
+    }
+
+    /** Shows the item at {@code position} in {@code row} and wires up its clicks. */
+    public static void bind(Row row, SettingsController settingsController, int position) {
         try {
             ConfigItem item = ConfigManager.getItems().get(position);
+            int viewType = item.getType();
 
             switch (viewType) {
                 case ConfigItem.HEADER:
-                    HeaderCellHolder headerCell = new HeaderCellHolder(holder);
-                    headerCell.cell.setText(Translator.get(item.getKey()));
+                    row.header.setText(Translator.get(item.getKey()));
                     break;
 
                 case ConfigItem.SWITCH:
-                    TextCheckCellHolder textCheck = new TextCheckCellHolder(holder);
+                    TextCheckCell textCheck = row.check;
                     if (item.getValue() != null) {
-                        textCheck.cell.setTextAndValueAndCheck(
+                        textCheck.setTextAndValueAndCheck(
                                 Translator.get(item.getKey()),
                                 item.getValue(),
                                 item.isEnable(),
@@ -59,7 +113,7 @@ public class SettingsAdapter {
                                 false
                         );
                     } else if (item.isRestartRequired()) {
-                        textCheck.cell.setTextAndValueAndCheck(
+                        textCheck.setTextAndValueAndCheck(
                                 Translator.get(item.getKey()),
                                 Translator.get(Keys.RestartRequired),
                                 item.isEnable(),
@@ -67,24 +121,23 @@ public class SettingsAdapter {
                                 false
                         );
                     } else {
-                        textCheck.cell.setTextAndCheck(
+                        textCheck.setTextAndCheck(
                                 Translator.get(item.getKey()),
                                 item.isEnable(),
                                 false
                         );
                     }
-                    textCheck.cell.getTextView().setLines(0);
-                    textCheck.cell.getTextView().setMaxLines(0);
-                    textCheck.cell.getTextView().setSingleLine(false);
-                    textCheck.cell.getTextView().setEllipsize(null);
+                    textCheck.getTextView().setLines(0);
+                    textCheck.getTextView().setMaxLines(0);
+                    textCheck.getTextView().setSingleLine(false);
+                    textCheck.getTextView().setEllipsize(null);
                     break;
                 case ConfigItem.EXPANDABLE_SWITCH:
-                    ExpandableTextCheckCellHolder expandableTextCheck = new ExpandableTextCheckCellHolder(holder);
-                    expandableTextCheck.cell.addChildren(item);
+                    row.expandable.addChildren(item);
 
                     break;
                 case ConfigItem.TEXT:
-                    TextSettingsCellHolder settingsCell = new TextSettingsCellHolder(holder);
+                    TextSettingsCell settingsCell = row.settings;
                     if (item.getKey().equals(Keys.Calendar)) {
                         String value = null;
                         switch (item.getCustomCalendar()) {
@@ -98,19 +151,17 @@ public class SettingsAdapter {
                                 value = Translator.get(Keys.Persian);
                                 break;
                         }
-                        settingsCell.cell.setTextAndValue(Translator.get(item.getKey()), value, false, false);
+                        settingsCell.setTextAndValue(Translator.get(item.getKey()), value, false, false);
                     } else {
-                        settingsCell.cell.setText(Translator.get(item.getKey()), false);
-                        settingsCell.cell.getTextView().setTextColor(Theme.getTextBlueColor());
+                        settingsCell.setText(Translator.get(item.getKey()), false);
+                        settingsCell.getTextView().setTextColor(Theme.getTextBlueColor());
                     }
                     break;
                 case ConfigItem.DIVIDER:
-                    ShadowSectionCellHolder shadowSectionCell = new ShadowSectionCellHolder(holder);
-                    shadowSectionCell.cell.setBackgroundColor((Theme.getBackgroundGrayColor()));
+                    row.itemView.setBackgroundColor(Theme.getBackgroundGrayColor());
                     break;
                 case ConfigItem.INFO:
-                    TextInfoCellHolder textInfoCell = new TextInfoCellHolder(holder);
-                    TextView textView = textInfoCell.text.getTextView();
+                    TextView textView = row.info.getTextView();
                     if (item.getKey().equals(Keys.OfflineVisibilityInfo)) {
                         textView.setMaxLines(2);
                         textView.setEllipsize(TextUtils.TruncateAt.END);
@@ -133,19 +184,16 @@ public class SettingsAdapter {
                     }
                     break;
             }
-            ViewHolder viewHolder = new ViewHolder(holder);
-
-            viewHolder.getItemView().setOnLongClickListener(v -> {
+            row.itemView.setOnLongClickListener(v -> {
                 playAudio(settingsController.getContext());
                 return true;
             });
 
-            viewHolder.getItemView().setOnClickListener(v -> {
+            row.itemView.setOnClickListener(v -> {
 
                 if (viewType == ConfigItem.SWITCH) {
-                    TextCheckCellHolder textCheck = new TextCheckCellHolder(holder);
-                    boolean checked = !textCheck.cell.isChecked();
-                    textCheck.cell.setChecked(checked);
+                    boolean checked = !row.check.isChecked();
+                    row.check.setChecked(checked);
                     item.setEnable(checked);
                     item.run();
                 } else if (viewType == ConfigItem.TEXT) {
@@ -173,9 +221,7 @@ public class SettingsAdapter {
                                     Translator.get(Keys.Calendar), item.getCustomCalendar(), (dialog, which) -> {
                                         item.setCustomCalendar(which);
                                         item.run();
-                                        if (settingsController.settingsActivity.listView.getAdapter() != null) {
-                                            settingsController.settingsActivity.listView.getAdapter().notifyItemChanged(position);
-                                        }
+                                        bind(row, settingsController, position);
                                     });
                             dlg.show();
                             break;
@@ -187,53 +233,6 @@ public class SettingsAdapter {
             Logger.e(t);
         }
 
-    }
-
-    public static class HeaderCellHolder {
-        HeaderCell cell;
-
-        public HeaderCellHolder(Object obj) {
-            cell = new HeaderCell(XReflect.getObjectField(obj, "headerCell"));
-        }
-    }
-
-    public static class TextCheckCellHolder {
-        TextCheckCell cell;
-
-        public TextCheckCellHolder(Object obj) {
-            cell = new TextCheckCell(XReflect.getObjectField(obj, "textCheckCell"));
-        }
-    }
-    public static class ExpandableTextCheckCellHolder {
-        ExpandableTextCheckCell cell;
-
-        public ExpandableTextCheckCellHolder(Object obj) {
-            cell = (ExpandableTextCheckCell) XReflect.getObjectField(obj, "expandableTextCheckCell");
-        }
-    }
-
-    public static class TextSettingsCellHolder {
-        TextSettingsCell cell;
-
-        public TextSettingsCellHolder(Object obj) {
-            cell = new TextSettingsCell(XReflect.getObjectField(obj, "textSettingsCell"));
-        }
-    }
-
-    public static class ShadowSectionCellHolder {
-        View cell;
-
-        public ShadowSectionCellHolder(Object obj) {
-            cell = (View) XReflect.getObjectField(obj, "view");
-        }
-    }
-
-    public static class TextInfoCellHolder {
-        TextInfoCell text;
-
-        public TextInfoCellHolder(Object obj) {
-            text = (TextInfoCell) XReflect.getObjectField(obj, "view");
-        }
     }
 
     public static void playAudio(Context context) {

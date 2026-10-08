@@ -1,7 +1,7 @@
 name: Client watch
 
 # Every week, checks the last five releases of every supported client - Nekogram, Cherrygram,
-# Nagram and NagramX (GitHub releases), Forkgram, Forkgram Classic and Mercurygram (F-Droid,
+# Nagram and NagramX, full and base (GitHub releases), Forkgram, Forkgram Classic and Mercurygram (F-Droid,
 # archive included) - and the latest official Telegram (telegram.org only serves the newest),
 # and checks that every TeleVip feature's hook points still resolve in each (ClientApkTest).
 # A build that breaks something fails the run (GitHub emails you) with the affected features in
@@ -44,7 +44,8 @@ jobs:
               {"client":"Nekogram","source":"github","from":"Nekogram/Nekogram","asset":"arm64-v8a","issue":true},
               {"client":"Cherrygram","source":"github","from":"arsLan4k1390/Cherrygram","asset":"arm64","issue":true},
               {"client":"Nagram","source":"github","from":"NextAlone/Nagram","asset":"arm64","issue":true},
-              {"client":"NagramX","source":"github","from":"risin42/NagramX","asset":"arm64","issue":true},
+              {"client":"NagramX","source":"github","from":"risin42/NagramX","asset":"^NagramX-.*arm64","only":true,"issue":true},
+              {"client":"NagramX base","source":"github","from":"risin42/NagramX","asset":"^NagramX_base-.*arm64","only":true,"issue":true},
               {"client":"Forkgram","source":"fdroid","from":"org.forkgram.messenger","issue":true},
               {"client":"Forkgram Classic","source":"fdroid","from":"org.forkgram.classic","issue":true},
               {"client":"Mercurygram","source":"fdroid","from":"it.belloworld.mercurygram","issue":true}]}'
@@ -83,9 +84,10 @@ jobs:
           SOURCE: ${{ matrix.source }}
           FROM: ${{ matrix.from }}
           ASSET: ${{ matrix.asset }}
+          ONLY: ${{ matrix.only && 'only' || '' }}
         run: |
           if [ "$SOURCE" = github ]; then
-            bash .github/scripts/client-builds.sh github "$FROM" "$ASSET" 5 > builds.tsv
+            bash .github/scripts/client-builds.sh github "$FROM" "$ASSET" 5 $ONLY > builds.tsv
           else
             bash .github/scripts/client-builds.sh "$SOURCE" "$FROM" 5 > builds.tsv
           fi

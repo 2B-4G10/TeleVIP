@@ -21,4 +21,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "TeleVip"
 include ':app'
-include ':settingsadapter'

@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Prints a client's newest builds, newest first, one "<label><TAB><APK URL>" per line.
 #
-#   client-builds.sh github <owner/repo> <asset pattern> [count]
+#   client-builds.sh github <owner/repo> <asset pattern> [count] [only]
 #       the latest releases that carry an APK; the asset matching the pattern (case-insensitive
-#       regex, e.g. arm64) is preferred, else the release's first APK. Needs gh and GH_TOKEN.
+#       regex, e.g. arm64) is preferred, else the release's first APK. With "only", releases
+#       without a matching APK are skipped instead (for a repo that ships several flavours).
+#       Needs gh and GH_TOKEN.
 #   client-builds.sh fdroid <package> [count]
 #       the latest versions on f-droid.org, its archive included, as arm64 or universal APKs.
 #   client-builds.sh url <URL>
@@ -13,12 +15,14 @@ set -euo pipefail
 source=$1
 case "$source" in
   github)
-    repo=$2 asset=$3 count=${4:-5}
-    gh api "repos/$repo/releases?per_page=50" | jq -r --arg asset "$asset" --argjson n "$count" '
+    repo=$2 asset=$3 count=${4:-5} only=${5:-}
+    gh api "repos/$repo/releases?per_page=50" | jq -r --arg asset "$asset" --argjson n "$count" \
+        --argjson only "$([ "$only" = only ] && echo true || echo false)" '
       [ .[] | select(.draft | not)
         | {tag: .tag_name, apks: [.assets[] | select(.name | test("\\.apk$"; "i"))]}
-        | select(.apks | length > 0)
-        | .tag + "\t" + ((.apks | map(select(.name | test($asset; "i")))) + .apks | .[0].browser_download_url) ]
+        | .matching = (.apks | map(select(.name | test($asset; "i"))))
+        | select(if $only then .matching | length > 0 else .apks | length > 0 end)
+        | .tag + "\t" + ((.matching + .apks) | .[0].browser_download_url) ]
       | .[:$n][]'
     ;;
   fdroid)

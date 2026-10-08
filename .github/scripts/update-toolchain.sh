@@ -60,7 +60,7 @@ for path, body in re.findall(r"<remotePackage path=\"(platforms;android-[0-9.]+)
 print(*best if best else ("", ""))') || true
 if [ -n "${sdk_new:-}" ] && [ "$sdk_new" -gt "$sdk_now" ]; then
   sed -i "s/compileSdk = $sdk_now$/compileSdk = $sdk_new/; s/targetSdk = $sdk_now$/targetSdk = $sdk_new/" \
-    app/build.gradle settingsadapter/build.gradle
+    app/build.gradle
   sed -i "s/'platforms;android-[0-9.]* /'$sdk_pkg /" .github/workflows/*.yml
   changes+=("Android SDK $sdk_now → $sdk_new")
 fi

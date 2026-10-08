@@ -10,7 +10,7 @@ import android.widget.LinearLayout;
 import com.my.televip.Configs.ConfigItem;
 import com.my.televip.language.Translator;
 import com.my.televip.settings.ui.SettingsAdapter;
-import com.my.televip.virtuals.TeleVip.Bridge.Bridge;
+import com.my.televip.settings.ui.SettingsCells;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +31,7 @@ public class ExpandableTextCheckCell extends LinearLayout {
         super(context);
         setOrientation(VERTICAL);
 
-        textCheckCell = Bridge.createTextCheckCell(context);
+        textCheckCell = SettingsCells.createTextCheckCell(context);
 
         addView(textCheckCell.getView(), new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 

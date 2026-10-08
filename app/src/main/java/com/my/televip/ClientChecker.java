@@ -105,7 +105,7 @@ public class ClientChecker {
         Nagram("xyz.nextalone.nagram", com.my.televip.Clients.Nagram.class),
         Nicegram("app.nicegram", com.my.televip.Clients.Nicegram.class),
         TelegramBeta("org.telegram.messenger.beta"),
-        NagramX("nu.gpu.nagram"),
+        NagramX(new String[]{"nu.gpu.nagram", "nu.gpu.nagramx"}, null),   // full and "base" builds
         XPlus("com.xplus.messenger"),
         iMe("com.iMe.android"),
         iMeWeb("com.iMe.android.web"),

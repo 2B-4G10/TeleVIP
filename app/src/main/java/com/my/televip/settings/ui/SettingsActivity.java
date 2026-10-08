@@ -4,28 +4,21 @@ package com.my.televip.settings.ui;
 import android.content.Context;
 import android.view.View;
 import android.widget.LinearLayout;
-
-import androidx.recyclerview.widget.LinearLayoutManager;
+import android.widget.ScrollView;
 
 import com.my.televip.Class.ClassLoad;
 import com.my.televip.Class.ClassNames;
 import com.my.televip.Drawable.ArrowDrawable;
 import com.my.televip.audio;
 import com.my.televip.base.AbstractMethodHook;
-import com.my.televip.dex.DexInjector;
 import com.my.televip.hooks.HMethod;
 import com.my.televip.language.Keys;
 import com.my.televip.language.Translator;
 import com.my.televip.logging.Logger;
 import com.my.televip.obfuscate.AutomationResolver;
-import com.my.televip.settings.adapter.ListAdapter;
 import com.my.televip.settings.controller.SettingsController;
 import com.my.televip.ui.toolBar.MainToolBar;
-import com.my.televip.virtuals.TeleVip.Bridge.Bridge;
 import com.my.televip.virtuals.Theme;
-import com.my.televip.virtuals.ui.Components.RecyclerListView;
-
-import com.my.televip.reflect.XReflect;
 
 public class SettingsActivity {
 
@@ -33,9 +26,11 @@ public class SettingsActivity {
 
     private final Context context;
 
-    public RecyclerListView listView;
-
-
+    /**
+     * The settings: a plain scrolling column of the client's own cells. The list is short, so it
+     * needs no recycling, and so nothing of RecyclerView: forks rename, strip or change the
+     * client's, and the list built on it came up empty on Nagram X 12.9.2.
+     */
     public View createView(SettingsController settingsController) {
 
         LinearLayout layout = new LinearLayout(context);
@@ -56,31 +51,36 @@ public class SettingsActivity {
 
             layout.addView(toolbar);
 
-            listView = new RecyclerListView(context);
-            if (DexInjector.classLoader != null) {
-                Object adapter = XReflect.newInstance(
-                        ClassLoad.getClass(ClassNames.SETTINGS_ADAPTER_LIST_ADAPTER, DexInjector.classLoader),
-                        context);
+            ScrollView scroll = new ScrollView(context);
+            scroll.setBackgroundColor(Theme.getBackgroundWhiteOrBlueColor());
+            scroll.setVerticalScrollBarEnabled(false);
 
-                listView.setAdapter(adapter);
-                listView.setLayoutManager(Bridge.getLayoutManager(context));
-            } else {
-                listView.setAdapter(new ListAdapter(context, settingsController));
-                listView.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false));
+            LinearLayout rows = new LinearLayout(context);
+            rows.setOrientation(LinearLayout.VERTICAL);
+            scroll.addView(rows, new ScrollView.LayoutParams(
+                    ScrollView.LayoutParams.MATCH_PARENT, ScrollView.LayoutParams.WRAP_CONTENT));
+
+            SettingsCells.prepare(context);
+            for (int i = 0; i < SettingsAdapter.getRowCount(); i++) {
+                // Row by row, so a cell this client cannot build costs that row, not the list.
+                try {
+                    SettingsAdapter.Row row = SettingsAdapter.createRow(context, i);
+                    SettingsAdapter.bind(row, settingsController, i);
+                    rows.addView(row.itemView, new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+                } catch (Throwable t) {
+                    Logger.e(t);
+                }
             }
 
-            listView.setBackgroundColor(Theme.getBackgroundWhiteOrBlueColor());
-
-            listView.setVerticalScrollBarEnabled(false);
-
-            LinearLayout.LayoutParams recyclerParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams listParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     0,
                     1f
             );
-            recyclerParams.setMargins(10, 10, 10, 0);
+            listParams.setMargins(10, 10, 10, 0);
 
-            layout.addView(listView.getRecyclerListView(), recyclerParams);
+            layout.addView(scroll, listParams);
 
         } catch (Throwable e) {
             Logger.e(e);

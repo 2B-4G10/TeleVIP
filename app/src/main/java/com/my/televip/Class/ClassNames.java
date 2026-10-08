@@ -49,10 +49,7 @@ public class ClassNames {
     public static final String TLRPC_CHAT = "org.telegram.tgnet.TLRPC$Chat";
     public static final String CHAT_MESSAGE_CELL_DELEGATE = "org.telegram.ui.ChatActivity$ChatMessageCellDelegate";
     public static final String FILE_LOADER = "org.telegram.messenger.FileLoader";
-    public static final String SETTINGS_ADAPTER_LIST_ADAPTER = "com.televip.SettingsAdapter.SettingsAdapter$ListAdapter";
     public static final String ANDROID_UTILITIES = "org.telegram.messenger.AndroidUtilities";
-    public static final String SETTINGS_ADAPTER_RECYCLER_LIST_VIEW = "com.televip.SettingsAdapter.SettingsAdapter$RecyclerListView";
-    public static final String SETTINGS_ADAPTER = "com.televip.SettingsAdapter.SettingsAdapter";
     public static final String TEXT_CHECK_CELL = "org.telegram.ui.Cells.TextCheckCell";
     public static final String UNIVERSAL_RECYCLER_VIEW = "org.telegram.ui.Components.UniversalRecyclerView";
     public static final String SHADOW_SECTION_CELL = "org.telegram.ui.Cells.ShadowSectionCell";
