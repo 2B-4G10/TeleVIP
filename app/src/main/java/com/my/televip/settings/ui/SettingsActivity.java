@@ -48,7 +48,7 @@ public class SettingsActivity {
 
             toolbar.setColorTitle(Theme.getTextToolBarColor());
             toolbar.setRippleColor(Theme.getToolBarRippleColor());
-            toolbar.setTextTitle(Translator.get(Keys.GhostMode));
+            toolbar.setTextTitle(Translator.get(Keys.SettingsName));
 
             ArrowDrawable arrow = new ArrowDrawable();
             toolbar.setImageDrawable(arrow);

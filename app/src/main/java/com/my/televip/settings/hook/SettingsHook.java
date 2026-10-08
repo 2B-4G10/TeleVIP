@@ -82,7 +82,7 @@ public class SettingsHook {
     private static void addRow(ArrayList<Object> items, Class<?> factory) {
         // The tile in the app icon's yellow; the plane is drawn on it by hookRowIcon.
         Object row = newSettingItem(factory, ROW_ID, AppIconDrawable.TILE_COLOR, AppIconDrawable.TILE_COLOR, ROW_ID,
-                Translator.get(Keys.GhostMode), Translator.get(Keys.ByMustafa));
+                Translator.get(Keys.SettingsName), Translator.get(Keys.MadeBy));
         for (int i = 0; i < items.size(); i++) {
             UItem item = new UItem(items.get(i));
             if (item.getText() != null && item.getSubtext() != null) {
@@ -289,7 +289,7 @@ public class SettingsHook {
                                 itemConstructor.setAccessible(true);
                             }
 
-                            Object newItem = itemConstructor.newInstance(8353847, Translator.get(Keys.GhostMode), SettingsIconResolver.getIconSettings());
+                            Object newItem = itemConstructor.newInstance(8353847, Translator.get(Keys.SettingsName), SettingsIconResolver.getIconSettings());
 
                             if (items instanceof ArrayList<?>) {
                                 ArrayList<Object> typedItems = (ArrayList<Object>) items;

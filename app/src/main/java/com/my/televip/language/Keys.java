@@ -7,8 +7,8 @@ public class Keys {
     public static final String InputMessageId = "InputMessageId";
     public static final String Done = "Done";
     public static final String Cancel = "Cancel";
-    public static final String GhostMode = "GhostMode";
-    public static final String ByMustafa = "ByMustafa";
+    public static final String SettingsName = "SettingsName";
+    public static final String MadeBy = "MadeBy";
     public static final String HideSeen = "HideSeen";
     public static final String HideStoryView = "HideStoryView";
     public static final String HideTyping = "HideTyping";
@@ -99,7 +99,7 @@ public class Keys {
     public static final String GregorianMonthDecember = "GregorianMonthDecember";
     public static final String ShowUserID = "ShowUserID";
     public static final String Open = "Open";
-    public static final String OpenGhostMode = "OpenGhostMode";
+    public static final String OpenSettings = "OpenSettings";
     public static final String HideSeenPrivateChat = "HideSeenPrivateChat";
     public static final String HideSeenChannel = "HideSeenChannel";
     public static final String ApproximateCreationDate = "ApproximateCreationDate";

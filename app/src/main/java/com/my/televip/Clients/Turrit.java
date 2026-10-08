@@ -118,8 +118,8 @@ public class Turrit {
 
     public static void showGhostModeDialog(SettingsController settingsController){
         AlertDialog ghostMode = new AlertDialog(settingsController.getContext());
-        ghostMode.setTitle(Translator.get(Keys.GhostMode));
-        ghostMode.setMessage(Translator.get(Keys.OpenGhostMode));
+        ghostMode.setTitle(Translator.get(Keys.SettingsName));
+        ghostMode.setMessage(Translator.get(Keys.OpenSettings));
         ghostMode.setPositiveButton(Translator.get(Keys.Open), AlertDialog.click(settingsController::openView));
         ghostMode.setNegativeButton(Translator.get(Keys.Cancel), null);
         ghostMode.show();
