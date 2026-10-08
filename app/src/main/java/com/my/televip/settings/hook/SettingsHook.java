@@ -8,7 +8,7 @@ import android.widget.ImageView;
 import com.my.televip.Class.ClassLoad;
 import com.my.televip.Class.ClassNames;
 import com.my.televip.ClientChecker;
-import com.my.televip.Drawable.GhostDrawable;
+import com.my.televip.Drawable.AppIconDrawable;
 import com.my.televip.base.AbstractMethodHook;
 import com.my.televip.hooks.HMethod;
 import com.my.televip.language.Keys;
@@ -35,9 +35,7 @@ public class SettingsHook {
     public void newSettings(Class<?> SettingsActivityClass, Class<?> SettingsActivity$SettingCell$FactoryClass, SettingsController settingsController){
         try {
 
-            GhostDrawable ghostDrawable = new GhostDrawable();
-
-            hookGhostIcon(SettingsActivity$SettingCell$FactoryClass, ghostDrawable);
+            hookRowIcon(SettingsActivity$SettingCell$FactoryClass, new AppIconDrawable());
 
             String fillItems = AutomationResolver.resolve("SettingsActivity", "fillItems", AutomationResolver.ResolverType.Method);
             String onClick = AutomationResolver.resolve("SettingsActivity", "onClick", AutomationResolver.ResolverType.Method);
@@ -82,7 +80,8 @@ public class SettingsHook {
 
     /** TeleVip's row, before the first row that has a subtitle (the account section). */
     private static void addRow(ArrayList<Object> items, Class<?> factory) {
-        Object row = newSettingItem(factory, ROW_ID, 0xFFF46F6F, 0xFFDF5555, ROW_ID,
+        // The tile in the app icon's yellow; the plane is drawn on it by hookRowIcon.
+        Object row = newSettingItem(factory, ROW_ID, AppIconDrawable.TILE_COLOR, AppIconDrawable.TILE_COLOR, ROW_ID,
                 Translator.get(Keys.GhostMode), Translator.get(Keys.ByMustafa));
         for (int i = 0; i < items.size(); i++) {
             UItem item = new UItem(items.get(i));
@@ -193,11 +192,11 @@ public class SettingsHook {
     }
 
     /**
-     * Puts the ghost icon on TeleVip's row. Hooks SettingCell.set where the build still has it;
+     * Puts TeleVip's app icon on TeleVip's row. Hooks SettingCell.set where the build still has it;
      * where R8 inlined set into the factory's bindView (Nekogram 12.10.3), hooks bindView, which
      * cannot be inlined because it overrides UItemFactory's.
      */
-    private void hookGhostIcon(Class<?> factory, final GhostDrawable ghostDrawable) {
+    private void hookRowIcon(Class<?> factory, final AppIconDrawable icon) {
         final Class<?> cellClass = ClassLoad.getClass(ClassNames.SETTINGS_ACTIVITY_SETTING_CELL);
         final String iconField = AutomationResolver.resolve("SettingsActivity$SettingCell", "iconView", AutomationResolver.ResolverType.Field);
         String setName = AutomationResolver.resolve("SettingsActivity$SettingCell", "set", AutomationResolver.ResolverType.Method);
@@ -207,7 +206,7 @@ public class SettingsHook {
             HMethod.hookMethod(cellClass, setName, AutomationResolver.merge(setParams, new AbstractMethodHook() {
                 @Override
                 protected void afterMethod(MethodHookParam param) {
-                    if ((int) param.args[2] == 8353847) setGhostIcon(param.thisObject, iconField, ghostDrawable);
+                    if ((int) param.args[2] == 8353847) setRowIcon(param.thisObject, iconField, icon);
                 }
             }));
             return;
@@ -222,7 +221,7 @@ public class SettingsHook {
                 @Override
                 protected void afterMethod(MethodHookParam param) {
                     if (param.args[1] != null && new UItem(param.args[1]).getID() == 8353847) {
-                        setGhostIcon(param.args[0], iconField, ghostDrawable);
+                        setRowIcon(param.args[0], iconField, icon);
                     }
                 }
             });
@@ -231,7 +230,7 @@ public class SettingsHook {
         Logger.w("settings: neither SettingCell.set nor Factory.bindView found, TeleVip's row keeps the default icon");
     }
 
-    private static void setGhostIcon(Object cell, String iconField, GhostDrawable ghostDrawable) {
+    private static void setRowIcon(Object cell, String iconField, AppIconDrawable icon) {
         ImageView iconView = null;
         try {
             iconView = (ImageView) XReflect.getObjectField(cell, iconField);
@@ -240,7 +239,7 @@ public class SettingsHook {
         }
         if (iconView == null && cell instanceof ViewGroup) iconView = onlyImage((ViewGroup) cell);
         if (iconView != null) {
-            iconView.setImageDrawable(ghostDrawable);
+            iconView.setImageDrawable(icon);
         } else {
             Logger.w("settings: no icon view on TeleVip's row, it keeps the default icon");
         }

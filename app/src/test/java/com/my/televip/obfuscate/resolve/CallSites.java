@@ -121,9 +121,9 @@ final class CallSites {
         OPTIONAL.put("TextCheckCell#isChecked", "inlined in some builds; the module remembers the last value it set");
         OPTIONAL.put("org.telegram.ui.Cells.ShadowSectionCell", "merged away in some builds; a plain spacer replaces it");
         OPTIONAL.put("SettingsActivity$SettingCell#set", "the row's icon is set from Factory.bindView instead");
-        OPTIONAL.put("SettingsActivity$SettingCell$Factory#bindView", "only paints the ghost icon on TeleVip's row");
-        OPTIONAL.put("SettingsActivity$SettingCell.iconView", "only paints the ghost icon on TeleVip's row");
-        OPTIONAL.put("org.telegram.ui.SettingsActivity$SettingCell", "only paints the ghost icon on TeleVip's row");
+        OPTIONAL.put("SettingsActivity$SettingCell$Factory#bindView", "only paints the app icon on TeleVip's row");
+        OPTIONAL.put("SettingsActivity$SettingCell.iconView", "only paints the app icon on TeleVip's row");
+        OPTIONAL.put("org.telegram.ui.SettingsActivity$SettingCell", "only paints the app icon on TeleVip's row");
         OPTIONAL.put("SecretMediaViewer#openMedia", "the old secret media viewer; ChatActivity's hooks cover current builds");
         OPTIONAL.put("SecretMediaViewer.onClose", "belt and braces: the read and delete requests are blocked already");
         OPTIONAL.put("MessageObject#isSecret", "inlined by Nekogram 12.9-12.10.1, which does not offer Secret media save;"
