@@ -1,9 +1,10 @@
 name: Client watch
 
 # Every week, checks the last five releases of every supported client - Nekogram, Cherrygram,
-# Nagram and NagramX, full and base (GitHub releases), Forkgram, Forkgram Classic and Mercurygram (F-Droid,
-# archive included) - and the latest official Telegram (telegram.org only serves the newest),
-# and checks that every TeleVip feature's hook points still resolve in each (ClientApkTest).
+# Nagram, NagramX (full and base) and Momogram (GitHub releases), Forkgram, Forkgram Classic and
+# Mercurygram (F-Droid, archive included) - and the latest official Telegram (telegram.org only
+# serves the newest), and checks that every TeleVip feature's hook points still resolve in each
+# (ClientApkTest).
 # A build that breaks something fails the run (GitHub emails you) with the affected features in
 # its summary, and opens an issue for that client if the repository has issues enabled; the issue
 # is closed once all of the client's last five releases work again.
@@ -48,7 +49,8 @@ jobs:
               {"client":"NagramX base","source":"github","from":"risin42/NagramX","asset":"^NagramX_base-.*arm64","only":true,"issue":true},
               {"client":"Forkgram","source":"fdroid","from":"org.forkgram.messenger","issue":true},
               {"client":"Forkgram Classic","source":"fdroid","from":"org.forkgram.classic","issue":true},
-              {"client":"Mercurygram","source":"fdroid","from":"it.belloworld.mercurygram","issue":true}]}'
+              {"client":"Mercurygram","source":"fdroid","from":"it.belloworld.mercurygram","issue":true},
+              {"client":"Momogram","source":"github","from":"im030/Momogram","asset":"arm64-v8a","issue":true}]}'
           fi
           echo "matrix=$(echo "$matrix" | jq -c .)" >> "$GITHUB_OUTPUT"
 
