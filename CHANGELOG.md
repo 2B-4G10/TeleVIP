@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.4 — Re: TeleVIP Settings
+
+- **TeleVip's entry in Settings is now called "Re: TeleVIP Settings 🛸"**, with "Made by:
+  @i_2B_4G10" below it. The settings screen it opens, and TeleVip's dialogs, use the new name
+  too, in all four languages (English, Arabic, Persian, Chinese).
+
 ## 1.1.3 — TeleVip's own icon in Settings
 
 - **TeleVip's entry in Settings shows TeleVip's app icon** — the paper plane on its yellow tile —
