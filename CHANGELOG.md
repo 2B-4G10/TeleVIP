@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.1.6 — the settings screen on every client, and Momogram
+
+- **Fixed: Re: TeleVIP Settings could open empty**, showing only its title bar (reported on
+  Nagram X 12.9.2). The list was built on the client's own RecyclerView, which forks rename,
+  strip or change. It is now a plain scrolling list of the same rows, built directly, so it
+  depends on nothing the client may have changed; a row the client cannot build is left out
+  instead of blanking the whole screen. This also removes the separate settings adapter that
+  was injected into the client.
+- **Momogram 12.10.x: every feature works.** Momogram renames and reorders much of its code,
+  and looks its strings up by resource id, so Save secret media, Show deleted messages, edits
+  history and more found nothing to hook. Hide app update is no longer offered there: Momogram
+  updates itself through its own updater.
+- **Nagram X's "base" build** (`nu.gpu.nagramx`) is supported.
+- The weekly client check now also covers Momogram and Nagram X base: ten clients, the last
+  five releases of each.
+
 ## 1.1.5 — the app is called Re: TeleVIP
 
 - **The module is now named "Re: TeleVIP"** in LSPosed / Vector and in Android's app list (it
