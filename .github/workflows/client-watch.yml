@@ -26,6 +26,11 @@ permissions:
   contents: read
   issues: write
 
+# A manual check started during the weekly run waits for it instead of racing its release.
+concurrency:
+  group: client-watch
+  cancel-in-progress: false
+
 jobs:
   clients:
     runs-on: ubuntu-24.04
@@ -101,13 +106,16 @@ jobs:
         run: |
           aapt2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | tail -n1)
           : > broken.txt
+          : > unchecked.txt
           : > summary.md
           while IFS=$'\t' read -r label url; do
             rm -f client.apk report.md
             # Big downloads from some servers drop mid-transfer: resume until complete.
             for attempt in 1 2 3 4 5; do
               curl -fsSL --retry 3 --retry-all-errors -C - -o client.apk "$url" && break
-              [ "$attempt" = 5 ] && { echo "::error::Could not download $url."; echo "$label (download failed)" >> broken.txt; continue 2; }
+              # Unreachable is not broken: no issue is opened, but the run still fails (and so releases nothing).
+              [ "$attempt" = 5 ] && { echo "::error::Could not download $url."; echo "$label (download failed)" >> unchecked.txt
+                echo "### $CLIENT $label: not checked, the download failed" >> summary.md; echo >> summary.md; continue 2; }
               sleep 10
             done
 
@@ -121,15 +129,29 @@ jobs:
             badging=$("$aapt2" dump badging client.apk 2>/dev/null | sed -n 1p)
             version="$(echo "$badging" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p") ($(echo "$badging" | sed -n "s/.*versionCode='\([^']*\)'.*/\1/p"))"
             echo "::group::$CLIENT $version"
-            if TELEVIP_CLIENT_APK="$PWD/client.apk" TELEVIP_CLIENT_REPORT="$PWD/report.md" ./gradlew \
-                :app:testDebugUnitTest --rerun --tests 'com.my.televip.obfuscate.resolve.ClientApkTest' --stacktrace \
-                < /dev/null; then
-              outcome=ok
-            else
+            # A failure without a report never reached the test (a dependency download or the Gradle
+            # daemon failed): that says nothing about the client, so it is tried once more.
+            for attempt in 1 2; do
+              rm -f report.md
+              if TELEVIP_CLIENT_APK="$PWD/client.apk" TELEVIP_CLIENT_REPORT="$PWD/report.md" ./gradlew \
+                  :app:testDebugUnitTest --rerun --tests 'com.my.televip.obfuscate.resolve.ClientApkTest' --stacktrace \
+                  < /dev/null; then
+                outcome=ok
+                break
+              fi
               outcome=broken
-              echo "$version" >> broken.txt
-            fi
+              [ -f report.md ] && break
+              outcome=unchecked
+              sleep 30
+            done
             echo "::endgroup::"
+            if [ "$outcome" = unchecked ]; then
+              echo "::error::$CLIENT $version could not be checked: the test did not run (see the log)."
+              echo "$version (check did not run)" >> unchecked.txt
+              { echo "### $CLIENT $version: not checked, the test did not run"; echo; } >> summary.md
+              continue
+            fi
+            [ "$outcome" = broken ] && echo "$version" >> broken.txt
             [ -f report.md ] || echo "The check produced no report; see the \"Check every build\" log." > report.md
             if [ "$outcome" = broken ]; then
               # Also as an annotation, which the API serves without the log: the build and its report.
@@ -144,10 +166,12 @@ jobs:
             fi
           done < builds.tsv
           [ -s broken.txt ] && echo "broken=true" >> "$GITHUB_OUTPUT" || true
+          [ -s unchecked.txt ] && echo "unchecked=true" >> "$GITHUB_OUTPUT" || true
 
       - name: Report
         env:
           BROKEN: ${{ steps.check.outputs.broken }}
+          UNCHECKED: ${{ steps.check.outputs.unchecked }}
           OPEN_ISSUES: ${{ matrix.issue }}
         run: |
           { echo "## $CLIENT"; echo; cat summary.md; } | tee -a "$GITHUB_STEP_SUMMARY" > body.md
@@ -159,7 +183,8 @@ jobs:
           number=$(gh issue list --state open --search "\"$title\" in:title" --json number,title \
               --jq ".[] | select(.title == \"$title\") | .number" | head -n1)
           if [ "$BROKEN" != "true" ]; then
-            [ -z "$number" ] || gh issue close "$number" --comment "Every hook point resolves again on all $(wc -l < builds.tsv) $CLIENT builds checked."
+            # Only close once every build was actually checked.
+            [ -z "$number" ] || [ "$UNCHECKED" = "true" ] || gh issue close "$number" --comment "Every hook point resolves again on all $(wc -l < builds.tsv) $CLIENT builds checked."
             exit 0
           fi
           # The same set of broken builds is reported once; a new one adds a comment.
@@ -174,6 +199,12 @@ jobs:
       - name: Fail when a feature broke
         if: steps.check.outputs.broken == 'true'
         run: exit 1
+
+      - name: Fail when a build could not be checked
+        if: steps.check.outputs.unchecked == 'true'
+        run: |
+          echo "::error::Not every $CLIENT build could be checked: $(paste -sd ',' unchecked.txt | sed 's/,/, /g'). Re-run the failed jobs."
+          exit 1
 
   release:
     name: Release pending changes
@@ -225,7 +256,13 @@ jobs:
           git config user.name "Faisal AlDossary"
           git config user.email 62283064+2B-4G10@users.noreply.github.com
           git commit -qam "Release $next"
-          git push origin HEAD:main
+          # Something may have landed on main during the run: rebase onto it and try again.
+          for attempt in 1 2 3; do
+            git push origin HEAD:main && break
+            [ "$attempt" = 3 ] && { echo "::error::Could not push Release $next to main."; exit 1; }
+            sleep $((attempt * 10))
+            git pull -q --rebase origin main
+          done
           echo "released=$next" >> "$GITHUB_OUTPUT"
 
       # A push made with this workflow's token starts no workflows, so start Release directly.

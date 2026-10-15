@@ -35,7 +35,14 @@ case "$source" in
     package=$2 count=${3:-5}
     work=$(mktemp -d)
     for repo in repo archive; do
-      curl -fsSL --retry 3 --retry-all-errors -o "$work/$repo.jar" "https://f-droid.org/$repo/index-v1.jar"
+      # The index is large and f-droid.org drops connections now and then: resume until it is whole.
+      for attempt in 1 2 3 4 5; do
+        curl -fsSL --retry 3 --retry-all-errors -C - -o "$work/$repo.jar" "https://f-droid.org/$repo/index-v1.jar" \
+            && unzip -tq "$work/$repo.jar" >/dev/null && break
+        [ "$attempt" = 5 ] && { echo "Could not download the f-droid.org $repo index." >&2; exit 1; }
+        rm -f "$work/$repo.jar"
+        sleep $((attempt * 15))
+      done
       unzip -p "$work/$repo.jar" index-v1.json | jq -r --arg p "$package" --arg base "https://f-droid.org/$repo/" '
         .packages[$p] // [] | .[]
         | select((.nativecode // ["arm64-v8a"]) | index("arm64-v8a"))
